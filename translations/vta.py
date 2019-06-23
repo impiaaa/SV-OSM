@@ -1,6 +1,6 @@
 from osgeo import ogr
 from geom import *
-import urllib, math, datetime
+import urllib.request, urllib.parse, urllib.error, math, datetime
 
 # sed s/OGRGeoJSON/Bus_Stop_Inventory/g Bus_Stop_Inventory.kml > Bus_Stop_Inventory-rename.kml
 # sed "s/OGRGeoJSON/Bus_2018/g;s/F_JANUARY_2019___//g" Bus_2018.kml > Bus_2018-rename.kml
@@ -19,9 +19,9 @@ import urllib, math, datetime
 
 def filterLayer(layer):
     if layer is None:
-        print "filterLayer: empty"
+        print("filterLayer: empty")
         return None
-    print layer.GetName()
+    print(layer.GetName())
     if layer.GetName() == "Bus_2018" and False:
         idFieldId1 = layer.GetLayerDefn().GetFieldIndex("DESTINATIONSI")
         idFieldId2 = layer.GetLayerDefn().GetFieldIndex("PATTERN_JAN2019_SP_LINEDIRID")
@@ -40,7 +40,7 @@ def filterLayer(layer):
             if geo.GetGeometryCount() > 1:
                 # for now
                 layer.DeleteFeature(i)
-                print "filterLayer: deleted feature", i, "split too much"
+                print("filterLayer: deleted feature", i, "split too much")
                 continue
             points = geo.GetGeometryRef(0).GetPoints()
             if points is None:
@@ -50,7 +50,7 @@ def filterLayer(layer):
             if lineId in routeIndices:
                 if points in routePoints[lineId]:
                     layer.DeleteFeature(i)
-                    print "filterLayer: deleted feature", i, lineId, "true duplicate"
+                    print("filterLayer: deleted feature", i, lineId, "true duplicate")
                     continue
                 else:
                     routeIndices[lineId].append(i)
@@ -61,20 +61,20 @@ def filterLayer(layer):
             i += 1
         layer.ResetReading()
         distFieldId = layer.GetLayerDefn().GetFieldIndex("DISTANCE")
-        for lineId, indices in routeIndices.items():
+        for lineId, indices in list(routeIndices.items()):
             if len(indices) > 0:
                 # delete all but the longest route of the same name
                 # not sure this is a good idea - some routes skip stops on some days but are numbered the same
                 indices.sort(key=lambda i: layer.GetFeature(i).GetFieldAsDouble(distFieldId), reverse=True)
                 for i in indices[1:]:
                     layer.DeleteFeature(i)
-                    print "filterLayer: deleted feature", i, lineId, "short duplicate"
+                    print("filterLayer: deleted feature", i, lineId, "short duplicate")
         
     return layer
 
 def filterFeature(ogrfeature, fieldNames, reproject):
     if ogrfeature is None:
-        print "filterFeature: empty"
+        print("filterFeature: empty")
         return
     geo = ogrfeature.GetGeometryRef()
     #if geo is None:
@@ -103,7 +103,7 @@ def filterFeature(ogrfeature, fieldNames, reproject):
         # Lines, from Bus_2018
         return ogrfeature
     else:
-        print "filterFeature: unknown schema", fieldNames
+        print("filterFeature: unknown schema", fieldNames)
         return
 
 routeNameFixes = {
@@ -164,12 +164,12 @@ routeNameFixes = {
 # pick-up only (TODO)
 "pick-up stop": "",
 }
-routeNameFixes = routeNameFixes.items()
+routeNameFixes = list(routeNameFixes.items())
 routeNameFixes.sort(key=lambda a: len(a[0]), reverse=True)
 
 def filterTags(attrs):
     if not attrs:
-        print "filterTags: empty"
+        print("filterTags: empty")
         return
     tags = {}
     if "feature" in attrs:
@@ -179,13 +179,15 @@ def filterTags(attrs):
         
         if attrs["rtiid"]:
             tags["ref"] = attrs["rtiid"]
-            tags["gtfs_id"] = str(int(attrs["rtiid"])-60000)
+            #tags["gtfs_id"] = str(int(attrs["rtiid"])-60000)
         if attrs["stopname"]:
-            tags["name"] = attrs["stopname"]
-            if tags["name"].isupper() or tags["name"].islower():
-                tags["name"] = tags["name"].title()
+            # Most (but not all) VTA stop names are not properly title-case
+            if attrs["stopname"].isupper() or attrs["stopname"].islower():
+                tags["name"] = attrs["stopname"].title()
+            else:
+                tags["name"] = attrs["stopname"]
         tags["operator"] = "Santa Clara Valley Transportation Authority"
-        #tags["operator"] = "Santa Clara Valley Transit Authority" # ???
+        # Some stops have "Santa Clara Valley Transit Authority" instead
         if attrs["feature"] == "Bus Stop":
             tags["bus"] = "yes"
         elif attrs["feature"] == "LR Stop":
@@ -195,6 +197,7 @@ def filterTags(attrs):
                 tags["wheelchair"] = "no"
             elif attrs["ada_accessible"] == "Yes":
                 tags["wheelchair"] = "yes"
+        # Count how many of each type of bench there are
         benches_known = False
         benches = 0
         for key in "ad_bench", "metal_vta_benches", "private_benches", "vta_bench":
@@ -216,43 +219,40 @@ def filterTags(attrs):
                 tags["shelter"] = "no"
             else:
                 tags["shelter"] = "yes"
+        # No matching VTA tag
         #tags["tactile_paving"]
         #tags["toilet"]
 
 
-        # Seen on existing stops, no schema
+        # Seen on existing stops, no schema or not related to PT schema
         
-        #if attrs["tactile_signs"] and attrs["tactile_signs"].lower() != "none":
-        #    tags["information"] = "tactile_letters"
+        if attrs["tactile_signs"] and attrs["tactile_signs"].lower() != "none":
+            tags["information"] = "tactile_letters"
         if attrs["feature"] == "Bus Stop":
             tags["highway"] = "bus_stop"
         elif attrs["feature"] == "LR Stop":
             tags["railway"] = "platform"
+        if attrs["comments"]:
+            tags["note"] = attrs["comments"]
         
         
         # Public transit schema V2
         
         tags["public_transport"] = "platform"
-        #tags["local_ref"]
         tags["network"] = "VTA"
+        # Attempt to clean up "others_using_stop" field and use it to list other joint bus networks
         if attrs["others_using_stop"] not in ["", "nnone", ",none", "none", "no", "no ", "No", "bike lane", "bike route", "transit signs", "Turn Off Engine Sign", "yes"]:
             others = attrs["others_using_stop"].strip().replace("  ", ";").replace(",", ";").replace("; ", ";")
             if (others.isupper() and len(others) > 6) or others.islower():
                 others = others.title()
             tags["network"] += ";"+others
-        #tags["covered"]
         if "schedule" in attrs["other_info_sign"] or "schedual" in attrs["other_info_sign"]:
             tags["departures_board"] = "yes"
-        #tags["layer"]
         if attrs["lighting_nearby"]:
-            #if attrs["lighting_nearby"] == "Shelter Light":
-            #    tags["lit"] = "yes"
-            #elif attrs["lighting_nearby"].startswith("Solar Light"):
-            #    tags["lit"] = "yes"
             if attrs["lighting_nearby"] == "None":
                 tags["lit"] = "no"
             else:
-                # Does S.L. other side count?
+                # Does "S.L. other side" count?
                 tags["lit"] = "yes"
         if attrs["boarding_pavement"]:
             if attrs["boarding_pavement"] == "AC - Asphalt Paving":
@@ -269,8 +269,12 @@ def filterTags(attrs):
                 tags["surface"] = "paving_stones"
             elif attrs["boarding_pavement"] == "PCC Concrete":
                 tags["surface"] = "concrete"
+        # No matching VTA tag
+        #tags["local_ref"]
+        #tags["covered"]
+        #tags["layer"]
 
-
+        # Attempt to clean up "route_number" and "routes_listed" VTA tags to use as "route_ref" OSM tag
         routes_listed = attrs["routes_listed"]
         if attrs["route_number"] not in ["", "Null", "none", "Other"] and attrs["route_number"] not in attrs["routes_listed"]:
             routes_listed += ";"+attrs["route_number"]
@@ -278,18 +282,20 @@ def filterTags(attrs):
             routes_listed = routes_listed.replace(find, replace)
         routes_listed = routes_listed.strip()
         if routes_listed:
-            # used to associate with route ways, removed in preOutputTransform
-            #tags["routes"] = set(routes_listed.split())
             tags["route_ref"] = routes_listed.replace(" ", ";").strip(";")
         
+        # Except for 55X, all VTA lines are decimal, so if there are any non-numbers in the route list, it's not actually served by VTA.
         if not any([r.isdecimal() or r.upper() == "55X" for r in routes_listed.split()]):
             del tags["operator"]
         
-        if attrs["date_updated"]: tags["vta:date_updated"] = attrs["date_updated"]
-        if attrs["date_visited"]: tags["vta:date_visited"] = attrs["date_visited"]
+        # Parsed and put into the actual node timestamp in filterFeaturePost
+        if attrs["date_updated"]:
+            tags["vta:date_updated"] = attrs["date_updated"]
+        if attrs["date_visited"]:
+            tags["vta:date_visited"] = attrs["date_visited"]
         tags["vta:last_modified"] = attrs["last_modified"]
-        if attrs["comments"]: tags["note"] = attrs["comments"]
-        # VTA tags without a translation
+        
+        # VTA tags without a directly matching OSM tag
         if False:
             tags["vta:amigo_id"] = attrs["amigo_id"]
             if attrs["ac_asphalt_paving"]: tags["vta:ac_asphalt_paving"] = attrs["ac_asphalt_paving"]
@@ -387,7 +393,7 @@ def filterTags(attrs):
         if attrs["DESTINATIONSI"].startswith(attrs["LINEABBR"]) and attrs["DESTINATIONSI"] and attrs["LINEABBR"]:
             i = attrs["DESTINATIONSI"].find(" ", len(attrs["LINEABBR"]))
             if i == -1:
-                print repr(attrs["DESTINATIONSI"]), repr(attrs["LINEABBR"])
+                print(repr(attrs["DESTINATIONSI"]), repr(attrs["LINEABBR"]))
                 tags["ref"] = attrs["LINEABBR"]
             else:
                 tags["ref"] = attrs["DESTINATIONSI"][:i]
@@ -489,7 +495,7 @@ def filterTags(attrs):
             if attrs["DESTINATIONSI"]: tags["vta:destinationsi"] = attrs["DESTINATIONSI"]
             #if attrs["SHAPELEN"]: tags["vta:shapelen"] = attrs["SHAPELEN"]
     else:
-        print "filterTags: unknown schema", attrs
+        print("filterTags: unknown schema", attrs)
     return tags
 
 def filterFeaturePost(feature, ogrfeature, ogrgeometry):
@@ -515,11 +521,13 @@ def filterFeaturePost(feature, ogrfeature, ogrgeometry):
             else:
                 feature.timestamp = datetime.datetime.strptime(t, "%m-%d-%Y")
     if "vta:date_visited" in feature.tags:
-        ts = datetime.datetime.strptime(feature.tags.pop("vta:date_visited")[:20], "%Y-%m-%dT%H:%M:%S.")
+        #ts = datetime.datetime.strptime(feature.tags.pop("vta:date_visited")[:20], "%Y-%m-%dT%H:%M:%S.")
+        ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:19], "%Y/%m/%d %H:%M:%S")
         if feature.timestamp is None or ts > feature.timestamp:
             feature.timestamp = ts
     if "vta:last_modified" in feature.tags:
-        ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:20], "%Y-%m-%dT%H:%M:%S.")
+        #ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:20], "%Y-%m-%dT%H:%M:%S.")
+        ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:19], "%Y/%m/%d %H:%M:%S")
         if feature.timestamp is None or ts > feature.timestamp:
             feature.timestamp = ts
 
@@ -539,7 +547,7 @@ def pointAboveLine(pt, slope, intercept):
 
 def preOutputTransform(geometries, features):
     if geometries is None and features is None:
-        print "preOutputTransform: empty"
+        print("preOutputTransform: empty")
         return
     if False:
         uniqueRoutes = []
@@ -580,7 +588,7 @@ def preOutputTransform(geometries, features):
                         except ValueError:
                             pass
                         feat.geometry = None
-                        print "preOutputTransform: deleted", feat.tags
+                        print("preOutputTransform: deleted", feat.tags)
                         continue
                 feat.tags = {}
                 if ref:
@@ -626,7 +634,7 @@ def preOutputTransform(geometries, features):
         for wayFeat in features:
             if isinstance(wayFeat.geometry, Way):
                 if "route" not in wayFeat.tags:
-                    print "preOutputTransform: way with no 'route' tag:", wayFeat.tags
+                    print("preOutputTransform: way with no 'route' tag:", wayFeat.tags)
                     continue
                 relFeat = Feature()
                 relFeat.tags = wayFeat.tags
@@ -645,10 +653,10 @@ def preOutputTransform(geometries, features):
                              if "routes" in feat.tags and \
                              routeNo in feat.tags["routes"]]
                     if len(stops) == 0:
-                        print "preOutputTransform: no stops on route", routeNo
+                        print("preOutputTransform: no stops on route", routeNo)
                         continue
                     if len(wayFeat.geometry.points) <= 1:
-                        print "preOutputTransform: empty way on route", routeNo
+                        print("preOutputTransform: empty way on route", routeNo)
                         continue
                     # follow the route, look for stops on the way
                     for i in range(len(wayFeat.geometry.points)-1):
@@ -704,7 +712,7 @@ def preOutputTransform(geometries, features):
                                ((pt2.y > pt1.y) ^ pointAboveLine(stop.geometry, perpendicular, perpInter2)):
                                 stop.geometry.addparent(relation)
                                 relation.members.append((stop.geometry, "platform"))
-                    print "preOutputTransform: route", routeNo, "has", len(stops), "stops,", len(relation.members)-1, "are on", relFeat.tags["name"]
+                    print("preOutputTransform: route", routeNo, "has", len(stops), "stops,", len(relation.members)-1, "are on", relFeat.tags["name"])
                 #else:
                 #    print "preOutputTransform: no ref on", relFeat.tags["name"]
     

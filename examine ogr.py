@@ -12,7 +12,7 @@ layerFields = {}
 
 for i in range(dataSource.GetLayerCount()):
     layer = dataSource.GetLayer(i)
-    print "Layer:", layer.GetName()
+    print("Layer:", layer.GetName())
     layer.ResetReading()
     
     featureDefinition = layer.GetLayerDefn()
@@ -46,27 +46,27 @@ for i in range(dataSource.GetLayerCount()):
             break
     
     for (fieldName, values, hasEmpty) in zip(fieldNames, fieldValues, fieldHasEmpty):
-        print "   ", fieldName,
+        print("   ", fieldName, end=' ')
         if hasEmpty:
             if len(values) == 0:
-                print "is always empty"
+                print("is always empty")
                 continue
-            print "can be",
+            print("can be", end=' ')
         else:
-            print "is never",
-        print "empty, has",
+            print("is never", end=' ')
+        print("empty, has", end=' ')
         if isinstance(values, str):
-            print "many values, for example,", values
+            print("many values, for example,", values)
         else:
-            print "values:"
+            print("values:")
             for v in values:
-                print "       ", v
-            print
+                print("       ", v)
+            print()
 
-for layerName, fieldNames in layerFields.iteritems():
+for layerName, fieldNames in layerFields.items():
     identifyingFields = set(fieldNames)
-    for otherName, otherFields in layerFields.iteritems():
+    for otherName, otherFields in layerFields.items():
         if otherName != layerName:
             identifyingFields.difference_update(otherFields)
-    print layerName, "has identifying fields", ", ".join(identifyingFields)
+    print(layerName, "has identifying fields", ", ".join(identifyingFields))
 

@@ -5,10 +5,10 @@ import datetime
 
 def filterLayer(layer):
     if layer is None:
-        print "filterLayer: empty"
+        print("filterLayer: empty")
         return None
     
-    print layer.GetName()
+    print(layer.GetName())
     
     #layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     
@@ -17,7 +17,7 @@ def filterLayer(layer):
 
 def filterFeature(ogrfeature, fieldNames, reproject):
     if ogrfeature is None:
-        print "filterFeature: empty"
+        print("filterFeature: empty")
         return
     if "MODELFLAG" in fieldNames and ogrfeature.GetFieldAsString(ogrfeature.GetFieldIndex("MODELFLAG")) == "M":
         # "merged" one-ways
@@ -26,7 +26,7 @@ def filterFeature(ogrfeature, fieldNames, reproject):
 
 def filterTags(attrs):
     if attrs is None:
-        print "filterTags: empty"
+        print("filterTags: empty")
         return None
     
     if "PARCELID" in attrs:

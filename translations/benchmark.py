@@ -2,7 +2,7 @@ import datetime
 
 def filterTags(attrs):
     if attrs is None:
-        print "filterTags: empty"
+        print("filterTags: empty")
         return None
     
     tags = {"man_made": "survey_point",

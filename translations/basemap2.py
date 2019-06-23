@@ -5,10 +5,10 @@ import datetime
 
 def filterLayer(layer):
     if layer is None:
-        print "filterLayer: empty"
+        print("filterLayer: empty")
         return None
     
-    print layer.GetName()
+    print(layer.GetName())
     
     #layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     
@@ -31,7 +31,7 @@ def filterLayer(layer):
 
 def filterFeature(ogrfeature, fieldNames, reproject):
     if ogrfeature is None:
-        print "filterFeature: empty"
+        print("filterFeature: empty")
         return
     
     if "FullMailin" in fieldNames:
@@ -50,7 +50,7 @@ def filterFeature(ogrfeature, fieldNames, reproject):
 
 def filterTags(attrs):
     if attrs is None:
-        print "filterTags: empty"
+        print("filterTags: empty")
         return None
 
     if "PARCELID" in attrs:
@@ -286,7 +286,7 @@ def pointToGrid(x, y, minCoord, maxCoord):
 
 def preOutputTransformDisabled(geometries, features):
     if geometries is None and features is None:
-        print "preOutputTransform: empty"
+        print("preOutputTransform: empty")
         return
     points = [[set() for x in range(gridLen)] for y in range(gridLen)]
     minCoord = [None, None]
@@ -302,7 +302,7 @@ def preOutputTransformDisabled(geometries, features):
                 maxCoord[0] = pt.x
             if maxCoord[1] is None or pt.y > maxCoord[1]:
                 maxCoord[1] = pt.y
-    print "preOutputTransform: building grid with range", minCoord, maxCoord
+    print("preOutputTransform: building grid with range", minCoord, maxCoord)
     maxCoord[0] += 1
     maxCoord[1] += 1
     for feat in features:
@@ -312,15 +312,15 @@ def preOutputTransformDisabled(geometries, features):
             assert gridX >= 0 and gridX < gridLen, (gridX, pt.x)
             assert gridY >= 0 and gridY < gridLen, (gridY, pt.y)
             points[gridY][gridX].add(feat)
-    print "preOutputTransform: nodes per cell min",\
+    print("preOutputTransform: nodes per cell min",\
         min([min([len(cell) for cell in row]) for row in points]),\
         "avg",\
         sum([sum([len(cell) for cell in row]) for row in points])/float(gridLen*gridLen),\
         "max",\
-        max([max([len(cell) for cell in row]) for row in points])
+        max([max([len(cell) for cell in row]) for row in points]))
     for i, geo in enumerate(geometries):
         if i%100 == 0:
-            print "preOutputTransform: checked", i, "/", len(geometries), "geometries"
+            print("preOutputTransform: checked", i, "/", len(geometries), "geometries")
         if isinstance(geo, Way):
             minX = min(geo.points, key=lambda a: a.x)
             maxX = max(geo.points, key=lambda a: a.x)

@@ -2,15 +2,15 @@
 
 def filterLayer(layer):
     if layer is None:
-        print "filterLayer: empty"
+        print("filterLayer: empty")
         return None
-    print layer.GetName()
+    print(layer.GetName())
     layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     return layer
 
 def filterTags(attrs):
     if attrs is None:
-        print "filterTags: empty"
+        print("filterTags: empty")
         return None
     
     tags = {"sjc:zoning": attrs["ZONING"], "sjc:pduse": attrs["PDUSE"]}
@@ -19,7 +19,7 @@ def filterTags(attrs):
         tags["landuse"] = "commercial"
     elif attrs["ZONING"] in ("Heavy Industria", "Industrial Park", "Light Industria"):
         tags["landuse"] = "industrial"
-    elif attrs["ZONING"] in ("Mobilehome Park", "Multiple Reside", "Rural Residenti", u"Cluster (R-1-8", "Single-Family R", "Two-Family Resi", u"Cluster (R-1-5"):
+    elif attrs["ZONING"] in ("Mobilehome Park", "Multiple Reside", "Rural Residenti", "Cluster (R-1-8", "Single-Family R", "Two-Family Resi", "Cluster (R-1-5"):
         tags["landuse"] = "residential"
     elif attrs["ZONING"] == "Commercial Neig":
         tags["landuse"] = "retail"
