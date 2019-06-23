@@ -1,0 +1,199 @@
+ogr2osm
+gtfs-osm-sync
+JOSM
+    conflation
+    contourmerge
+    kendzi3d
+    measurement
+    pt_assistant
+    public_transport
+    reltoolbox
+    scripting
+    utilsplugin2
+    waydownloader
+
+VTA
+    Open Data Portal Terms of Use
+        very open!
+    
+    BART Webservice
+        all already mapped, limited additional information
+        SCC BART Stops
+        BART Phase 1
+        BART Phase 2
+    BikePedCollisions
+        probably not useful
+        Bicycle Collision 2008-2012
+        Pedestrian Collisions 2008-2012
+    CountywideBikePlan2018 WebMap
+        Point Across Barrier Connections
+        Line Across Barrier Connections
+        Cross County Bikeway Corridors
+            could use to add/confirm bike lanes, but i think there was already an import for that
+        Priority Corridors
+            same as above? maybe existing, not proposed
+    General Plan Land Use Webservice
+        landuse=*
+        also seems to work around streets
+        would additionally need collation for all the cities
+        Campbell GPLU
+        Cupertino GPLU
+        Gilroy GPLU
+        Los Gatos Zoning
+        Milpitas GPLU
+        Monte Sereno GPLU
+        Morgan Hill GPLU
+        Mountain View GPLU
+        Palo Alto GPLU
+        San Jose GPLU
+        Santa Clara GPLU 2025-2035
+        Sunnyvale GPLU
+        SC County GPLU
+        ABAG Planned Land Use 2006
+    HighwayTOS
+        Ramp Meter Construction
+            combine with below
+        Ramp Meters
+            rampmeters.py
+            traffic_signals=ramp_meter - 708
+            very inaccurate placement
+        Existing CCTV
+            cctv.py
+            surveillance:zone=traffic - 8131
+        CCTV - No Equipment 
+            combine with above (proposed)
+        PeMS 2012 SCL
+            don't know what this is
+        Freeway HOV Lanes
+            hov:lanes=* - 4249
+        Expressway HOV Lanes
+            combine with above
+        Existing Express Lanes
+            only 2, on 237 and 680. find out what they are - thought fasttrak was more commonplace
+    LOSwebmap
+        CMP Intersections 2016
+        LOS Mix AM 2016
+        LOS Mix PM 2016
+        LOS HOV AM 2016
+        LOS HOV PM 2016
+        CMP Intersections 2014
+        LOS Expressways 2014
+        LOS Mix AM 2013
+        LOS Mix PM 2013
+        CMP Intersections 2012
+    PedAccessPlan
+        probably not useful
+        Project Locations
+        Focus Areas
+    PlanningWebService
+        probably not useful
+        Growth Areas
+        Urban Villages
+        Cores, Corridors, and Station Areas
+        Priority Development Areas
+    
+    Bike Paths Lanes Routes
+        already imported?
+    Bus 2018
+        vta.py
+        same as gtfs, would likely need transition to PTv2
+        algorithm to determine routes for paths is complex. works… mostly. doesn't split ways.
+        do NOT use to detect stops on route
+    Bus Stop Inventory
+        vta.py
+        lots of really useful info, not all has (direct) translation
+        could be a big conflation effort
+        less necessary to move to PTv2
+        if v2, not obvious if it should be stop position or platform (placement accuracy)
+    CaltrainPnR
+    GTFS/VTA GTFS Data File
+        lots of good information, but current map is not v2, gtfs-osm-sync is not v2, gtfs-osm-sync doesn't find routes
+    LTS Tiled Map Service Layer
+    Light Rail Platforms
+        included in Bus?
+    Light Rail Stops
+        already mapped
+    Light Rail Track
+        already mapped, and included in Bus?
+    VTA ParkandRide
+    VTA Transit Centers
+
+San Jose
+    Annexations
+        probably not useful
+    Basemap
+        basemap.py
+        see script for comments
+        Parcels
+            used below
+        Single Street Centerlines
+            includes speedlimit and width, but otherwise already mapped
+            also bring up the "New Street"(?) thing
+        Divided Street Centerlines
+            same
+    Basemap 2
+        basemap2.py
+        basemap.js - uses Parcels to correlate Address Points with Building Footprints
+        not sure what to do with condos
+        see basemap2.py for addt'l comments
+        Address Points
+        Building Footprints
+        Condo Points
+        Intersections
+        Side Walk Areas
+        Tract Boundaries
+    City Council Districts
+        probably not useful
+    City Limits
+        I thought not useful, but apparently there was a wish for this?
+    General Plan
+    Sanitary Systems
+        there is a spec for manholes, and even pipes, but not sure how useful it all is
+        Sanitary Mains
+        Sanitary Manholes
+    Storm Systems
+        marginally more useful than above, since detentions (basins) and culverts are above ground
+        would need merging effort
+        Storm Mains
+        Manholes
+        Inlets
+        Laterals
+        Outfalls
+        Overland Drains
+        Pumpstations
+    Survey Benchmark Locations
+        there's a spec, but not sure how useful
+    Zoning
+        zoning.py, expand.js
+        landuse=*
+        works around streets (needs lots of cleanup)
+
+SCC
+    Datasets available as GeoJSON:
+    Points of Interest
+        fire/police stations, schools… has some address info, but some outdated, and all already mapped
+    Population by 2010 Census Tract
+        probably not useful
+    Certified Healthy Nail Salons
+        weird, but actually mostly unmapped! poor geolocating though
+    
+    AddressPoint
+    AirportsOutline
+    CadastralMapgrids500
+    CadastralMapgridsXY
+    City Limits
+    County Boundary (Area)
+    Downtown SJC
+    General Plan
+    HospitalsAreas
+    LandPolygon
+    Parcels
+    Railroads
+    RoadsMajor
+    SchoolsAreas
+    Streetedge
+    Unincorporated Areas
+    Zoning
+        landuse=*
+        seems to be sparse
+
