@@ -8,7 +8,7 @@ def getJson(url):
     q = parse_qs(u.query)
     q['f'] = 'json'
     url = urlunparse(u._replace(query=urlencode(q)))
-    print("Loading", url)
+    #print("Loading", url)
     return json.load(urlopen(url))
 
 def urlAdd(base, *components):
@@ -34,13 +34,25 @@ def parseMapServer(url, j=None, path=None):
     if j is None: j = getJson(url)
     if path is None and 'mapName' in j:
         path = j['mapName']
+    print(path)
+    if 'serviceDescription' in j:
+        print(j['serviceDescription'])
     if path is not None:
         os.makedirs(path, exist_ok=True)
     for layer in j['layers']:
+        name = layer['name'].replace(os.path.sep, '_')
+        if 'parentLayerId' in layer:
+            parentLayerId = layer['parentLayerId']
+            while parentLayerId != -1:
+                parents = [parent for parent in j['layers'] if parent['id'] == parentLayerId]
+                name = os.path.join(parents[0]['name'].replace(os.path.sep, '_'), name)
+                parentLayerId = parents[0]['parentLayerId']
+            os.makedirs(os.path.split(name)[0], exist_ok=True)
+        name = name+"_"+str(layer['id'])
         if path is None:
-            p = layer['name'].replace(os.path.sep, '_')
+            p = name
         else:
-            p = os.path.join(path, layer['name'].replace(os.path.sep, '_'))
+            p = os.path.join(path, name)
         parseMapLayer(urlAdd(url, str(layer['id'])), path=p)
 
 cellCount = 8
@@ -49,6 +61,9 @@ def parseMapLayer(url, j=None, path=None):
     if j is None: j = getJson(url)
     if path is None:
         path = j['name']
+    print("   ", path)
+    if 'description' in j:
+        print("   ", j['description'])
     if os.path.exists(path+'.geojson'): return
     extent = j['extent']
     xSize = extent['xmax']-extent['xmin']
@@ -70,7 +85,7 @@ def parseMapLayer(url, j=None, path=None):
             subExtent['xmin'] = extent['xmin'] + xSize*xCell/cellCount
             subExtent['xmax'] = extent['xmin'] + xSize*(xCell+1)/cellCount
             q['geometry'] = json.dumps(subExtent)
-            print("Loading layer", j['name'], "section", xCell, "x", yCell)
+            print("    Loading layer", j['name'], "section", xCell, "x", yCell)
             layerPiece = json.load(urlopen(urlunparse(u._replace(query=urlencode(q)))))
             if 'features' not in layerPiece:
                 warn("Layer part "+repr(layerPiece)+" has no features")
