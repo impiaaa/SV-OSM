@@ -5,7 +5,7 @@ def filterLayer(layer):
         print("filterLayer: empty")
         return None
     print(layer.GetName())
-    layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
+    #layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     return layer
 
 def filterTags(attrs):

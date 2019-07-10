@@ -22,54 +22,7 @@ def filterLayer(layer):
         print("filterLayer: empty")
         return None
     print(layer.GetName())
-    if layer.GetName() == "Bus_2018" and False:
-        idFieldId1 = layer.GetLayerDefn().GetFieldIndex("DESTINATIONSI")
-        idFieldId2 = layer.GetLayerDefn().GetFieldIndex("PATTERN_JAN2019_SP_LINEDIRID")
-        routePoints = {}
-        routeIndices = {}
-        i = 0
-        while i < layer.GetFeatureCount():
-            ogrfeature = layer.GetFeature(i)
-            if ogrfeature is None:
-                i += 1
-                continue
-            geo = ogrfeature.GetGeometryRef()
-            if geo is None:
-                i += 1
-                continue
-            if geo.GetGeometryCount() > 1:
-                # for now
-                layer.DeleteFeature(i)
-                print("filterLayer: deleted feature", i, "split too much")
-                continue
-            points = geo.GetGeometryRef(0).GetPoints()
-            if points is None:
-                i += 1
-                continue
-            lineId = ogrfeature.GetFieldAsString(idFieldId1)+ogrfeature.GetFieldAsString(idFieldId2)
-            if lineId in routeIndices:
-                if points in routePoints[lineId]:
-                    layer.DeleteFeature(i)
-                    print("filterLayer: deleted feature", i, lineId, "true duplicate")
-                    continue
-                else:
-                    routeIndices[lineId].append(i)
-                    routePoints[lineId].append(points)
-            else:
-                routeIndices[lineId] = [i]
-                routePoints[lineId] = [points]
-            i += 1
-        layer.ResetReading()
-        distFieldId = layer.GetLayerDefn().GetFieldIndex("DISTANCE")
-        for lineId, indices in list(routeIndices.items()):
-            if len(indices) > 0:
-                # delete all but the longest route of the same name
-                # not sure this is a good idea - some routes skip stops on some days but are numbered the same
-                indices.sort(key=lambda i: layer.GetFeature(i).GetFieldAsDouble(distFieldId), reverse=True)
-                for i in indices[1:]:
-                    layer.DeleteFeature(i)
-                    print("filterLayer: deleted feature", i, lineId, "short duplicate")
-        
+    
     return layer
 
 def filterFeature(ogrfeature, fieldNames, reproject):
@@ -77,25 +30,6 @@ def filterFeature(ogrfeature, fieldNames, reproject):
         print("filterFeature: empty")
         return
     geo = ogrfeature.GetGeometryRef()
-    #if geo is None:
-    #    print "filterFeature: empty geometry", ogrfeature.GetFID()
-    #    return
-    #if geo.GetGeometryType() == ogr.wkbPoint:
-    #    pt = geo.GetPoint()
-    #else:
-    #    pt = geo.Centroid().GetPoint()
-    #if pt[0] < -121.9167566 or \
-    #    pt[1] < 37.3412814 or \
-    #    pt[0] > -121.873985 or \
-    #    pt[1] > 37.3662764:
-    #    print "filterFeature: out of bounds"
-    #    return
-    #if pt[0] < -121.8749174 or \
-    #    pt[1] < 37.2442858 or \
-    #    pt[0] > -121.8560212 or \
-    #    pt[1] > 37.2575915:
-    #    print "filterFeature: out of bounds"
-    #    return
     if "feature" in fieldNames:
         # Stops, from Bus_Stop_Inventory
         return ogrfeature
@@ -427,24 +361,6 @@ def filterTags(attrs):
                 to = to[:i]
             tags["to"] = to.strip().title()
             #print "parsed to", tags["to"]
-            if False:#to[:12] in attrs["LINENAME"]:
-                # LINENAME is either FROM - TO or TO - FROM.
-                # DESTINATIONSI is always the destination (to).
-                # Figure out if DESTINATIONSI is closer to the start or the end of LINENAME,
-                # and use the other half for "from."
-                j1 = attrs["LINENAME"].find(to[:12])
-                #j2 = min(j1 + len(to), len(attrs["LINENAME"]))
-                j2 = j1+min(12, len(to))
-                while j2 < len(attrs["LINENAME"]) and j2-j1 < len(to) and attrs["LINENAME"][j2] == to[j2-j1]: j2 += 1
-                if j1 > len(attrs["LINENAME"])-j2:
-                    while (attrs["LINENAME"][j1-1].isspace() or attrs["LINENAME"][j1-1] == "-") and j1 > 0:
-                        j1 -= 1
-                    tags["from"] = attrs["LINENAME"][:j1].title()
-                else:
-                    while (attrs["LINENAME"][j2].isspace() or attrs["LINENAME"][j2] == "-") and j2 < len(attrs["LINENAME"]):
-                        j2 += 1
-                    tags["from"] = attrs["LINENAME"][j2:].title()
-                #print "parsed from", tags["from"]
         else:
             #tags["name"] = attrs["LINEABBR"]+" "+attrs["DESTINATIONSI"].title().strip() # XXX
             tags["official_name"] = attrs["LINENAME"].title().strip()
@@ -501,7 +417,6 @@ def filterTags(attrs):
 def filterFeaturePost(feature, ogrfeature, ogrgeometry):
     if feature is None:
         return
-    # vta:date_updated, vta:date_visited, vta:last_modified
     if "vta:date_updated" in feature.tags:
         t = feature.tags.pop("vta:date_updated")
         while not t[-1].isdigit(): t = t[:-1]
@@ -521,203 +436,11 @@ def filterFeaturePost(feature, ogrfeature, ogrgeometry):
             else:
                 feature.timestamp = datetime.datetime.strptime(t, "%m-%d-%Y")
     if "vta:date_visited" in feature.tags:
-        #ts = datetime.datetime.strptime(feature.tags.pop("vta:date_visited")[:20], "%Y-%m-%dT%H:%M:%S.")
         ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:19], "%Y/%m/%d %H:%M:%S")
         if feature.timestamp is None or ts > feature.timestamp:
             feature.timestamp = ts
     if "vta:last_modified" in feature.tags:
-        #ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:20], "%Y-%m-%dT%H:%M:%S.")
         ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:19], "%Y/%m/%d %H:%M:%S")
         if feature.timestamp is None or ts > feature.timestamp:
             feature.timestamp = ts
-
-def getWayIndexForStop(stop, ways):
-    # look for ways that have "stop" as the next stop
-    for i, way in enumerate(ways):
-        for f2 in way.parents:
-            # lazy fuzzy match
-            if "vta:dest" in f2.tags and f2.tags["vta:dest"][3:10] in stop.tags["name"]:
-                return i
-
-def pointAboveLine(pt, slope, intercept):
-    if slope == float("inf"):
-        return pt.x >= intercept
-    else:
-        return pt.y >= slope*pt.x + intercept
-
-def preOutputTransform(geometries, features):
-    if geometries is None and features is None:
-        print("preOutputTransform: empty")
-        return
-    if False:
-        uniqueRoutes = []
-        routeFeatures = []
-        routeWays = []
-        routeWaysPoints = []
-        i = 0
-        while i < len(features):
-            feat = features[i]
-            if "route" in feat.tags:
-                if "vta:objectid" in feat.tags:
-                    ref = feat.tags.pop("vta:objectid")
-                else:
-                    ref = ""
-                if "vta:dest" in feat.tags:
-                    dest = feat.tags.pop("vta:dest")
-                else:
-                    dest = ""
-                # filter unique routes (on linedirid), since there are multiple ways for each
-                if feat.tags not in uniqueRoutes:
-                    uniqueRoutes.append(feat.tags)
-                    routeWays.append([feat.geometry])
-                    routeWaysPoints.append([[(pt.x, pt.y) for pt in feat.geometry.points]])
-                    #routeFeatures.append(feat)
-                    #i += 1
-                else:
-                    # delete truly duplicate ways
-                    j = uniqueRoutes.index(feat.tags)
-                    pts = [(pt.x, pt.y) for pt in feat.geometry.points]
-                    if pts not in routeWaysPoints[j]:
-                        routeWays[j].append(feat.geometry)
-                        routeWaysPoints[j].append(pts)
-                    else:
-                        del features[i]
-                        geometries.remove(feat.geometry)
-                        try:
-                            feat.geometry.removeparent(feat)
-                        except ValueError:
-                            pass
-                        feat.geometry = None
-                        print("preOutputTransform: deleted", feat.tags)
-                        continue
-                feat.tags = {}
-                if ref:
-                    feat.tags["ref"] = ref
-                if dest:
-                    feat.tags["vta:dest"] = dest
-            i += 1
-        
-        # transform route ways into relations
-        for route, ways in zip(uniqueRoutes, routeWays):
-            feat = Feature()
-            feat.tags = route
-            relation = Relation()
-            feat.geometry = relation
-            relation.addparent(feat)
-            
-            relation.members.extend([(way, "") for way in ways])
-
-            # look for associated stops
-            if "ref" in route and route["ref"]:
-                routeNo = route["ref"]
-                #routeDir = route["vta:directionname"][0]
-                stops = [feat for feat in features \
-                        if "routes" in feat.tags and \
-                        routeNo in feat.tags["routes"]]# and \
-                        #getWayIndexForStop(feat, ways) >= 0]
-                #stops.sort(key=lambda stop: stop.tags["vta:stop"])
-                #relation.members.extend([(stop.geometry, "platform") for stop in stops])
-                for stop in reversed(stops):
-                    stop.geometry.addparent(relation)
-                    idx = getWayIndexForStop(stop, ways)
-                    m = (stop.geometry, "platform")
-                    if idx is not None:
-                        relation.members.insert(idx, m)
-                    else:
-                        relation.members.append(m)
-            
-            geometries.append(relation)
-            features.append(feat)
-    
-    elif False:
-        # transform route ways into relations
-        for wayFeat in features:
-            if isinstance(wayFeat.geometry, Way):
-                if "route" not in wayFeat.tags:
-                    print("preOutputTransform: way with no 'route' tag:", wayFeat.tags)
-                    continue
-                relFeat = Feature()
-                relFeat.tags = wayFeat.tags
-                wayFeat.tags = {}
-                relation = Relation()
-                relFeat.geometry = relation
-                relation.addparent(relFeat)
-                relation.members.append((wayFeat.geometry, ""))
-                geometries.append(relation)
-                features.append(relFeat)
-                
-                if "ref" in relFeat.tags and relFeat.tags["ref"] and False:
-                    routeNo = relFeat.tags["ref"]
-                    # get stops on this route
-                    stops = [feat for feat in features \
-                             if "routes" in feat.tags and \
-                             routeNo in feat.tags["routes"]]
-                    if len(stops) == 0:
-                        print("preOutputTransform: no stops on route", routeNo)
-                        continue
-                    if len(wayFeat.geometry.points) <= 1:
-                        print("preOutputTransform: empty way on route", routeNo)
-                        continue
-                    # follow the route, look for stops on the way
-                    for i in range(len(wayFeat.geometry.points)-1):
-                        pt1 = wayFeat.geometry.points[i]
-                        pt2 = wayFeat.geometry.points[i+1]
-                        # y = m*x + b
-                        # line of the segment
-                        if pt1.x == pt2.x:
-                            slope = float("inf")
-                            intercept = pt1.x # use x-offset instead
-                        else:
-                            slope = float(pt2.y - pt1.y)/float(pt2.x - pt1.x)
-                            intercept = pt1.y - int(slope*pt1.x)
-                        #print "preOutputTransform", routeNo, pt1.x, pt1.y, pt2.x, pt2.y, slope, intercept
-                        # lines perpendicular to the segment, intersecting the endpoints
-                        # negative reciperocal slope
-                        if pt1.y == pt2.y:
-                            perpendicular = float("inf")
-                            perpInter1 = pt1.x
-                            perpInter2 = pt2.x
-                        else:
-                            perpendicular = -1.0*float(pt2.x - pt1.x)/float(pt2.y - pt1.y)
-                            perpInter1 = pt1.y - perpendicular*pt1.x
-                            perpInter2 = pt2.y - perpendicular*pt2.x
-                        # line parallel to the segment but offset to the right
-                        d = 0.0003*1e9 # needs tweaking
-                        if pt2.y < pt1.y: d *= -1
-                        # to travel d units along the perpendicular line, move by this much on each axis
-                        if pt1.y == pt2.y:
-                            ptOffX = 0.0
-                            ptOffY = d
-                        else:
-                            ptOffX = d / math.sqrt(perpendicular**2 + 1)
-                            ptOffY = d*perpendicular / math.sqrt(perpendicular**2 + 1)
-                        # intercept of the line parallel
-                        if pt1.x == pt2.x:
-                            interOff = intercept + ptOffX
-                        else:
-                            interOff = (ptOffY+intercept) - slope*ptOffX
-                        
-                        for stop in stops:
-                            # if a stop is in an inside curve, don't add it twice
-                            if isinstance(relation.members[-1][0], Point) and \
-                               relation.members[-1][0].x == stop.geometry.x and \
-                               relation.members[-1][0].y == stop.geometry.y:
-                                continue
-                            # look inside the box (way segment line<->right offset, bottom<->top)
-                            # the XOR part is to check for directionality
-                            # (i.e., check for stops north of the segment if heading west, south if heading east)
-                            if ((pt2.x >= pt1.x) ^ pointAboveLine(stop.geometry, slope, intercept)) and \
-                               ((pt2.x < pt1.x) ^ pointAboveLine(stop.geometry, slope, interOff)) and \
-                               ((pt2.y <= pt1.y) ^ pointAboveLine(stop.geometry, perpendicular, perpInter1)) and \
-                               ((pt2.y > pt1.y) ^ pointAboveLine(stop.geometry, perpendicular, perpInter2)):
-                                stop.geometry.addparent(relation)
-                                relation.members.append((stop.geometry, "platform"))
-                    print("preOutputTransform: route", routeNo, "has", len(stops), "stops,", len(relation.members)-1, "are on", relFeat.tags["name"])
-                #else:
-                #    print "preOutputTransform: no ref on", relFeat.tags["name"]
-    
-    # delete "routes" internal tag
-    for feat in features:
-        if "routes" in feat.tags:
-            del feat.tags["routes"]
 
