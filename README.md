@@ -267,13 +267,15 @@ seems to be sparse
 ## [San Jose maps gallery](http://gis.sanjoseca.gov/apps/mapsgallery/)
 
 ### DOT/DOT_MapsGallery_StreetTrees_M
-trees.py
+trees.py  
+`natural=tree`
 
 ## [San Jose ArcGIS server](https://geo.sanjoseca.gov/server/rest/services)
 Part or whole can be downloaded with download mapserer.py. Need to index and survey in full.
 
 ### DOT/DOT_TreeKeeper_StreetTrees_M
-trees.py
+trees.py  
+`natural=tree`
 
 ## [Santa Clara County ArcGIS server](https://www.sccgov.org/gis/rest/services)
 Part or whole can be downloaded with download mapserer.py. Need to index and survey in full.
