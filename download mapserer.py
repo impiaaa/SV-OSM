@@ -47,7 +47,9 @@ def parseMapServer(url, j=None, path=None):
                 parents = [parent for parent in j['layers'] if parent['id'] == parentLayerId]
                 name = os.path.join(parents[0]['name'].replace(os.path.sep, '_'), name)
                 parentLayerId = parents[0]['parentLayerId']
-            os.makedirs(os.path.split(name)[0], exist_ok=True)
+            parentdir = os.path.split(name)[0]
+            if parentdir:
+                os.makedirs(parentdir, exist_ok=True)
         name = name+"_"+str(layer['id'])
         if path is None:
             p = name
