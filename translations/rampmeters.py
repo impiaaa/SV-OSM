@@ -1,6 +1,7 @@
 def filterTags(attrs):
     tags = {"crossing": "no",
-            "traffic_signals": "ramp_meter"}
+            "traffic_signals": "ramp_meter",
+            "traffic_signals:hov": "no"}
     if attrs["EXISTING"] == "0":
         tags["proposed:highway"] = "traffic_signals"
     elif attrs["OPERATIONA"] == "0":
@@ -14,12 +15,12 @@ def filterTags(attrs):
     if attrs["COMMENTS"]:
         tags["note"] = attrs["COMMENTS"]
     if attrs["DAYS_OPERA"]:
-        tags["opening_hours"] = "-".join([day[:2] for day in attrs["DAYS_OPERA"].split("-")])
+        tags["traffic_signals:operating_times"] = "-".join([day[:2] for day in attrs["DAYS_OPERA"].split("-")])
     if attrs["TIME_OF_AC"]:
-        if tags["opening_hours"]:
-            tags["opening_hours"] += " "
+        if tags["traffic_signals:operating_times"]:
+            tags["traffic_signals:operating_times"] += " "
         else:
-            tags["opening_hours"] = ""
+            tags["traffic_signals:operating_times"] = ""
         startS, endS = attrs["TIME_OF_AC"].split("-")
         if startS.endswith("PM"):
             start = int(startS[:-2].strip())+12
@@ -35,6 +36,6 @@ def filterTags(attrs):
             end = int(endS[:-2].strip())
         else:
             end = int(endS.strip())
-        tags["opening_hours"] += "%02d:00-%02d:00"%(start, end)
+        tags["traffic_signals:operating_times"] += "%02d:00-%02d:00"%(start, end)
     return tags
 
