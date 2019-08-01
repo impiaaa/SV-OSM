@@ -273,6 +273,29 @@ trees.py
 ## [San Jose ArcGIS server](https://geo.sanjoseca.gov/server/rest/services)
 Part or whole can be downloaded with download mapserer.py. Need to index and survey in full.
 
+### DOT/DOT_Landscaping
+* WaterMeters
+* PedestrianOvercrossings
+* City Council Districts
+* Beautify San Jose
+* General Fund Landscape - In House
+* General Fund Landscape - Contractual
+* General Fun Landscape - ConcreteIslands
+* Special District Parcels
+* SoundWalls  
+  noisewall.py  
+  `barrier=wall`
+* Weed Abatement DOT
+* Weed Abatement PRNS
+* Weed Abatement Closed
+* Pedestrian Overcrossing Lights
+* Caltrans Agreements
+* PRNS Parks Landscaping
+* County Roads And Airports Landscaping
+* Home Owners Association
+* Parcels
+* County Or Other
+
 ### DOT/DOT_TreeKeeper_StreetTrees_M
 trees.py  
 `natural=tree`
