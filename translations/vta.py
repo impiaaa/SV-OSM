@@ -13,6 +13,11 @@ import urllib.request, urllib.parse, urllib.error, math, datetime
 # grep -v "</coordinates></LineString><LineString><coordinates>" Bus_fix3.kml > Bus_fix4.kml # optional
 # python ogr2osm.py Bus_fix4.kml -t translations/vta.py -v -f
 
+# sed 's/F_JANUARY_2019___//g;s/"LINEABBR":null,//g;s/"LINENAME":null,//g;s/"LINE_TYPE":null,//g;s/"DIRECTIONNAME":null,//g;s/"PATTERN":null,//g;s/"DISTANCE":null,//g;s/"PATTERNID":null,//g;s/"SIGNUPNAME":null,//g' Bus_2018.geojson > Bus_2018-rename.geojson
+# sed -E "s/([0-9.-]+,[0-9.-]+)\]\],\[\[\1/\1/g" Bus_2018-rename.geojson > Bus_2018-fix1.geojson
+# sed -E "s/(\[[0-9.-]+,[0-9.-]+\])\],\[(\[[0-9.-]+,[0-9.-]+\]),\1\],\[\2/\1,\2/g" Bus_2018-fix1.geojson > Bus_2018-fix2.geojson
+# sed -E "s/(\[[0-9.-]+,[0-9.-]+\]),(\[[0-9.-]+,[0-9.-]+\])\],\[\1,\2/\1,\2/g" Bus_2018-fix2.geojson > Bus_2018-fix3.geojson
+
 # idea: figure out once and for all which ID's are unique. find duplicates by POINTS LIST and list common/different keys
 
 # active VTA transit editors: andygol, seattlefyi, njtbusfan, richlv, Edward, wheelmap_android, Dvorty, Minh Nguyen, stevea, whjms, dhogan, mark7, bibi6, Dr Kludge, Alexander Avtanski, huonw, Ropino, clay_c, ErikPottinger, KindredCoda, StellanL, n76, jgkamat, gaku, 217541OSM
@@ -21,6 +26,10 @@ def filterLayer(layer):
     if layer is None:
         print("filterLayer: empty")
         return None
+    if layer.GetName() == "Bus_Stop_Inventory":
+        # Stops, from Bus_Stop_Inventory
+        global StatusFieldIndex
+        StatusFieldIndex = layer.GetLayerDefn().GetFieldIndex("trapeze_status")
     print(layer.GetName())
     
     return layer
@@ -32,6 +41,9 @@ def filterFeature(ogrfeature, fieldNames, reproject):
     geo = ogrfeature.GetGeometryRef()
     if "feature" in fieldNames:
         # Stops, from Bus_Stop_Inventory
+        if ogrfeature.GetFieldAsString(StatusFieldIndex) not in ("Active", ""):
+            # skip: Inactive, Proposed, Temporary, Under Construction, Under Review
+            return
         return ogrfeature
     elif "LINE_TYPE" in fieldNames:
         # Lines, from Bus_2018
@@ -351,35 +363,14 @@ def filterTags(attrs):
         #tags["wheelchair"]
         # DESTINATIONSI(gn) is what the vehicle sign says; can be the next stop (lr), line name (shuttle), or ultimate destination (bus)
         if attrs["DESTINATIONSI"].startswith(attrs["LINEABBR"]) and attrs["DESTINATIONSI"] and attrs["LINEABBR"]:
-            #tags["name"] = attrs["DESTINATIONSI"].title().strip() # XXX
-            #print "parsing", attrs["DESTINATIONSI"]
             to = attrs["DESTINATIONSI"][attrs["DESTINATIONSI"].find(' ', len(attrs["LINEABBR"]))+1:]
+            if to.lower().startswith(attrs["LINE_TYPE"].lower()):
+                to = to[len(attrs["LINE_TYPE"])+1:]
             if " via " in to.lower():
                 i = to.lower().find(" via ")
                 tags["via"] = to[i+5:].strip().title()
-                #print "parsed via", tags["via"]
                 to = to[:i]
             tags["to"] = to.strip().title()
-            #print "parsed to", tags["to"]
-        else:
-            #tags["name"] = attrs["LINEABBR"]+" "+attrs["DESTINATIONSI"].title().strip() # XXX
-            tags["official_name"] = attrs["LINENAME"].title().strip()
-        #if attrs["LINE_TYPE"] != "Light Rail":
-        #    if frm == to:
-        #        tags["name"] = "Bus {ref}".format(ref=tags["ref"])
-        #    elif via:
-        #        tags["name"] = "Bus {ref}: {frm} => {via} => {to}".format(ref=tags["ref"], frm=frm, to=to, via=via)
-        #    else:
-        #        tags["name"] = "Bus {ref}: {frm} => {to}".format(ref=tags["ref"], frm=frm, to=to)
-        
-        #if tags["ref"] and "from" in tags and "to" in tags and "via" in tags:
-        #    tags["name"] = "VTA {ref} {from} - {via} - {to}".format(**tags)
-        #elif tags["ref"] and "from" in tags and "to" in tags and tags["from"] != tags["to"]:
-        #    tags["name"] = "VTA {ref} {from} - {to}".format(**tags)
-        if "ref" in tags and tags["ref"]:
-            tags["name"] = "VTA {}".format(tags["ref"])
-            if attrs["PATTERN"]:
-                tags["name"] += " "+attrs["PATTERN"]
         #tags["official_name"]
         #tags["colour"] # 900=E3670F, 901=008FD5, 902=7FBF4F
         
