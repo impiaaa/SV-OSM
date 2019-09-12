@@ -12,7 +12,7 @@ def filterLayer(layer):
     
     #layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     
-    if layer.GetName() in ["Parcel", "SingleStreets"]: # "DIVIDED_STREETS" duplicates SingleStreets
+    if layer.GetName() in ["Parcel"]: # "SingleStreets" # "DIVIDED_STREETS" duplicates SingleStreets
         return layer
 
 def filterFeature(ogrfeature, fieldNames, reproject):

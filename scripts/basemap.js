@@ -24,55 +24,6 @@ function containsWay(thing, way) {
     }
 }
 
-function cleanBuildings() {
-    var console = require("josm/scriptingconsole");
-    var command = require("josm/command");
-    var layers = require("josm/layers");
-    
-    var layer = layers.get("Basemap2.osm");
-    var ds = layer.data;
-    
-    var buildings = ds.query(function(p) {
-        return !p.isNode && p.get("building") == "yes";
-    });
-    console.println("buildings: " + buildings.length);
-    var merged = 0;
-    var untag = [];
-    for (i = 0; i < buildings.length; i++) {
-        var building = buildings[i];
-        var nodes = ds.searchNodes(building.getBBox());
-        var filteredNodes = [];
-        for (j = 0; j < nodes.size(); j++) {
-            var node = nodes.get(j);
-            if (node.has("building") && containsNode(building, node) && !node.isDeleted()) {
-                filteredNodes.push(node);
-            }
-        }
-        /*if (filteredNodes.length == 1) {
-            var node = filteredNodes[0];
-            layer.apply(
-                command.change(building, {tags: node.tags}),
-                command.delete(node)
-            );
-            merged++;
-            building.setModified(true);
-        }
-        else*/ if (filteredNodes.length > 1) {
-            for (j = 0; j < filteredNodes.length; j++) {
-                untag.push(filteredNodes[j]);
-            }
-        }
-    }
-    layer.apply(command.change(untag, {tags: {building: null}}));
-    for (i = 0; i < untag.length; i++) {
-        untag[i].setModified(true);
-    }
-    
-    console.println("merged " + merged);
-    console.println("untagged " + untag.length);
-}
-//cleanBuildings();
-
 function mergeParcels() {
     var console = require("josm/scriptingconsole");
     var command = require("josm/command");
@@ -111,7 +62,7 @@ function mergeParcels() {
                 }
             }
         }
-        if (buildingWays.length != 1) {
+        if (buildingWays.length == 0) {
             continue;
         }
         
@@ -130,6 +81,9 @@ function mergeParcels() {
         }
         
         var addrNode = buildingNodes[0];
+        buildingWays.sort(function(a, b) {
+            return org.openstreetmap.josm.tools.Geometry.closedWayArea(b) - org.openstreetmap.josm.tools.Geometry.closedWayArea(a);
+        });
         var building = buildingWays[0];
         layer.apply(
             // copy tags from node to way

@@ -22,7 +22,7 @@ def filterLayer(layer):
         defn = layer.GetLayerDefn()
         IntTypeIndex = defn.GetFieldIndex("INTTYPE")
     
-    if layer.GetName() in ["CondoParcel", "BuildingFootprint", "Site_Address_Points", "StreetIntersection"]:
+    if layer.GetName() in ["CondoParcel", "BuildingFootprint", "Site_Address_Points"]: # "StreetIntersection"
         return layer
         
     # CondoPoint doesn't have anything relating it to anything specific.
