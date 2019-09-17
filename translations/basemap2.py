@@ -148,7 +148,7 @@ def filterTags(attrs):
                                 "Multi Family": "residential",
                                 "Restaurant": "commercial",
                                 "Retail": "retail",
-                                "Single Family": "house"}.get(pt, "yes")
+                                "Single Family": "detached"}.get(pt, "yes")
         
         if pt == "Business":
             tags["office"] = "yes"
@@ -178,7 +178,7 @@ def filterTags(attrs):
         elif pt == "Retail":
             tags["shop"] = "yes"
         elif pt == "Single Family":
-            tags["building"] = "house"
+            tags["building"] = "detached"
 
         val = attrs["Source"]
         if val: tags["source"] = val
