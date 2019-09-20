@@ -49,6 +49,8 @@ def filterFeature(ogrfeature, fieldNames, reproject):
     
     return ogrfeature
 
+SURVEY_FEET_TO_METER = 1200.0/3937.0
+
 def filterTags(attrs):
     if attrs is None:
         print("filterTags: empty")
@@ -100,8 +102,8 @@ def filterTags(attrs):
         # BuildingFootprint
         tags = {"building": "yes",
                 # Always appear, has equivalent
-                "height": str(int(round(float(attrs["BLDGHEIGHT"])*0.30480060960121924))),
-                "ele": str(round(float(attrs["BLDGELEV"])*0.30480060960121924, 1)),
+                "height": "%.02f"%round(float(attrs["BLDGHEIGHT"])*SURVEY_FEET_TO_METER, 2),
+                "ele": "%.02f"%round(float(attrs["BLDGELEV"])*SURVEY_FEET_TO_METER, 2),
                 # Always appear, no equivalent
                 "sjc:FacilityID": attrs["FACILITYID"]}
         

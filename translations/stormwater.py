@@ -37,7 +37,7 @@ def filterTags(attrs):
         if attrs["PUMPTYPE"] not in ("", "Unknown"):
             tags["pumping_station:type"] = attrs["PUMPTYPE"].lower().replace(" ", "_")
         if attrs["ELEVATION"]:
-            tags["ele"] = str(round(float(attrs["ELEVATION"])*0.30480060960121924, 1))
+            tags["ele"] = str(round(float(attrs["ELEVATION"])*(1200.0/3937.0), 1))
         if attrs["INLETDIAM"]:
             tags["diameter"] = str(round(float(attrs["INLETDIAM"].strip('"'))*2.5400051, 0))
         if attrs["OWNEDBY"] == "Private":

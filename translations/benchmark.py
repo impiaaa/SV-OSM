@@ -10,7 +10,7 @@ def filterTags(attrs):
             "description": attrs["LOCDESCRIP"]}
     
     if attrs["ELEVATIONF"]:
-        tags["ele"] = str(round(float(attrs["ELEVATIONF"])*0.304800609601219241, 1))
+        tags["ele"] = str(round(float(attrs["ELEVATIONF"])*(1200.0/3937.0), 1))
     if attrs["LASTUPDATE"]:
         tags["sjc:LastUpdate"] = datetime.datetime.strptime(attrs["LASTUPDATE"], "%Y%m%d%H%M%S")
     
