@@ -37,6 +37,7 @@ def filterFeature(ogrfeature, fieldNames, reproject):
     if "FullMailin" in fieldNames:
         global StatusFieldIndex, UnitTypeIndex
         if ogrfeature.GetFieldAsString(StatusFieldIndex) not in ("Active", "Existing"):
+            # skip: Unverified, Temporary, Retired
             return
         if ogrfeature.GetFieldAsString(UnitTypeIndex) in ("Apartment", "Basement", "Upper"):
             # likely in the same building

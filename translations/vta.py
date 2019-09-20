@@ -41,8 +41,8 @@ def filterFeature(ogrfeature, fieldNames, reproject):
     geo = ogrfeature.GetGeometryRef()
     if "feature" in fieldNames:
         # Stops, from Bus_Stop_Inventory
-        if ogrfeature.GetFieldAsString(StatusFieldIndex) not in ("Active", ""):
-            # skip: Inactive, Proposed, Temporary, Under Construction, Under Review
+        if ogrfeature.GetFieldAsString(StatusFieldIndex) not in ("Active", "", "Inactive", "Proposed", "Under Construction", "Under Review"):
+            # skip: Temporary
             return
         return ogrfeature
     elif "LINE_TYPE" in fieldNames:
@@ -146,7 +146,7 @@ def filterTags(attrs):
         # Count how many of each type of bench there are
         benches_known = False
         benches = 0
-        for key in "ad_bench", "metal_vta_benches", "private_benches", "vta_bench":
+        for key in "ad_bench", "metal_vta_benches", "private_benches", "vta_bench", "simmie_seat":
             if attrs[key]:
                 benches_known = True
                 benches += int(attrs[key])
@@ -172,19 +172,23 @@ def filterTags(attrs):
 
         # Seen on existing stops, no schema or not related to PT schema
         
-        if attrs["tactile_signs"] and attrs["tactile_signs"].lower() != "none":
+        prefix = {"Inactive": "disused:",
+                  "Proposed": "proposed:",
+                  "Under Construction": "construction:",
+                  "Under Review": "proposed:"}.get(attrs["trapeze_status"], "")
+        if attrs["tactile_signs"] and attrs["tactile_signs"] != "None":
             tags["information"] = "tactile_letters"
         if attrs["feature"] == "Bus Stop":
-            tags["highway"] = "bus_stop"
+            tags[prefix+"highway"] = "bus_stop"
         elif attrs["feature"] == "LR Stop":
-            tags["railway"] = "platform"
+            tags[prefix+"railway"] = "platform"
         if attrs["comments"]:
             tags["note"] = attrs["comments"]
         
         
         # Public transit schema V2
         
-        tags["public_transport"] = "platform"
+        tags[prefix+"public_transport"] = "platform"
         tags["network"] = "VTA"
         # Attempt to clean up "others_using_stop" field and use it to list other joint bus networks
         if attrs["others_using_stop"] not in ["", "nnone", ",none", "none", "no", "no ", "No", "bike lane", "bike route", "transit signs", "Turn Off Engine Sign", "yes"]:
@@ -427,7 +431,7 @@ def filterFeaturePost(feature, ogrfeature, ogrgeometry):
             else:
                 feature.timestamp = datetime.datetime.strptime(t, "%m-%d-%Y")
     if "vta:date_visited" in feature.tags:
-        ts = datetime.datetime.strptime(feature.tags.pop("vta:last_modified")[:19], "%Y/%m/%d %H:%M:%S")
+        ts = datetime.datetime.strptime(feature.tags.pop("vta:date_visited")[:19], "%Y/%m/%d %H:%M:%S")
         if feature.timestamp is None or ts > feature.timestamp:
             feature.timestamp = ts
     if "vta:last_modified" in feature.tags:
