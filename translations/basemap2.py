@@ -139,9 +139,9 @@ def filterTags(attrs):
 
         pt = attrs["Place_Type"]
         # Unit_Type is Apartment, Basement, Building, Office, Room, Space, Suite, Trailer, Unit, Upper
-        if attrs["Unit_Type"] in ("Building", "Trailer", "") or attrs["Unit"] == "":
+        if attrs["Unit_Type"] in ("Building", "Space", "") or attrs["Unit"] == "":
             # other Place_Type are Common Area (multi-use), Miscellaneous
-            tags["building"] = {"Business": "office",
+            tags["building"] = {"Business": "commercial",
                                 "Educational": "school",
                                 "Faith Based Organiz": "religious",
                                 "Government": "government",
@@ -149,13 +149,13 @@ def filterTags(attrs):
                                 "Hotel": "hotel",
                                 "Mobile Home": "static_caravan",
                                 "Multi Family": "residential",
-                                "Restaurant": "commercial",
+                                "Restaurant": "retail",
                                 "Retail": "retail",
-                                "Single Family": "detached"}.get(pt, "yes")
+                                "Single Family": "house"}.get(pt, "yes")
         
-        if pt == "Business":
-            tags["office"] = "yes"
-        elif pt == "Educational":
+        #if pt == "Business":
+            #tags["office"] = "yes"
+        if pt == "Educational":
             tags["amenity"] = "school"
         elif pt == "Faith Based Organiz":
             tags["amenity"] = "place_of_worship"
@@ -170,18 +170,18 @@ def filterTags(attrs):
             tags["tourism"] = "hotel"
         #elif pt == "Miscellaneous":
             #print pt, attrs["FullMailin"]
-        elif pt == "Mobile Home":
-            tags["building"] = "static_caravan"
-        elif pt == "Multi Family":
-            tags["building:use"] = "residential"
+        #elif pt == "Mobile Home":
+            #tags["building"] = "static_caravan"
+        #elif pt == "Multi Family":
+            #tags["building:use"] = "residential"
         elif pt == "Recreational":
             tags["club"] = "sport"
         elif pt == "Restaurant":
             tags["amenity"] = "restaurant"
         elif pt == "Retail":
             tags["shop"] = "yes"
-        elif pt == "Single Family":
-            tags["building"] = "detached"
+        #elif pt == "Single Family":
+            #tags["building"] = "detached"
 
         val = attrs["Source"]
         if val: tags["source"] = val
