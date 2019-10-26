@@ -12,7 +12,7 @@ def filterLayer(layer):
     
     #layer.SetSpatialFilterRect(6161510, 1914285, 6167021, 1919180)
     
-    if layer.GetName() in ["Parcel"]: # "SingleStreets" # "DIVIDED_STREETS" duplicates SingleStreets
+    if layer.GetName() in ["SingleStreets"]: # "DIVIDED_STREETS" duplicates SingleStreets
         return layer
 
 def filterFeature(ogrfeature, fieldNames, reproject):
@@ -28,30 +28,6 @@ def filterTags(attrs):
     if attrs is None:
         print("filterTags: empty")
         return None
-    
-    if "PARCELID" in attrs:
-        # Parcel
-        tags = {# Always appear, no equivalent
-                "sjc:ParcelID": attrs["PARCELID"],
-                "sjc:INTID": attrs["INTID"],
-                "sjc:ParcelType": attrs["PARCELTYPE"],
-                "sjc:LastUpdate": datetime.datetime.strptime(attrs["LASTUPDATE"], "%Y/%m/%d")}
-        
-        # Sometimes appear, has equivalent
-        if attrs["NOTES"]: tags["note"] = attrs["NOTES"]
-        #if attrs["COVERED"] == "No": tags["covered"] = "no"
-        if attrs["COVERED"]: tags["sjc:Covered"] = attrs["COVERED"]
-        
-        # Sometimes appear, no equivalent
-        if attrs["APN"]: tags["sjc:APN"] = attrs["APN"]
-        if attrs["LOTNUM"]: tags["sjc:LotNum"] = attrs["LOTNUM"]
-        if attrs["LUDESC"]: tags["sjc:LUDesc"] = attrs["LUDESC"]
-        if attrs["PLANCRT"]: tags["sjc:PlanCRT"] = attrs["PLANCRT"]
-        if attrs["PLANMOD"]: tags["sjc:PlanMOD"] = attrs["PLANMOD"]
-        
-        # Unused: LUSUBDESC, FEATURECLA
-        
-        return tags
     
     if "FACILITYID" in attrs:
         # SingleStreets/DIVIDED_STREETS
