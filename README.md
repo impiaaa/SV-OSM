@@ -148,6 +148,7 @@ already mapped, and included in Bus?
 
 ### VTA ParkandRide
 ### VTA Transit Centers
+`public_transport=station`
 
 ## [San Jose official data download](http://www.sanjoseca.gov/index.aspx?NID=3308)
 ### Annexations
@@ -231,6 +232,39 @@ works around streets (needs lots of cleanup)
 ## [County of Santa Clara open data portal](https://data.sccgov.org/browse?sortBy=alpha)
 Datasets available as GeoJSON
 
+### AddressPoint
+`addr:*`
+
+### AirportsOutline
+`aeroway=*`  
+features not split or classified
+
+### CadastralMapgrids500
+### CadastralMapgridsXY
+### Certified Healthy Nail Salons
+nails.py  
+`shop=beauty`  
+weird, but actually mostly unmapped! poor geolocating though
+
+### City Limits
+`boundary=administrative`+`admin_level=8`
+
+### County Boundary (Area)
+`boundary=administrative`+`admin_level=6`
+
+### Downtown SJC
+address parcels; includes zip4
+
+### General Plan
+### HospitalsAreas
+`amenity=hospital`
+
+### LandPolygon
+address parcels; includes zip4
+
+### Parcels
+includes zip4
+
 ### Points of Interest
 scc poi.py  
 `amenity=*`  
@@ -239,26 +273,18 @@ fire/police stations, schools… has some address info, but some outdated, and a
 ### Population by 2010 Census Tract
 probably not useful
 
-### Certified Healthy Nail Salons
-nails.py  
-`shop=beauty`  
-weird, but actually mostly unmapped! poor geolocating though
-
-### AddressPoint
-### AirportsOutline
-### CadastralMapgrids500
-### CadastralMapgridsXY
-### City Limits
-### County Boundary (Area)
-### Downtown SJC
-### General Plan
-### HospitalsAreas
-### LandPolygon
-### Parcels
 ### Railroads
+`railway=rail`
+
 ### RoadsMajor
+`highway=trunk`
+
 ### SchoolsAreas
+`amenity=school`
+
 ### Streetedge
+`highway=*`
+
 ### Unincorporated Areas
 ### Zoning
 `landuse=*`  
@@ -266,9 +292,99 @@ seems to be sparse
 
 ## [San Jose maps gallery](http://gis.sanjoseca.gov/apps/mapsgallery/)
 
-### DOT/DOT_MapsGallery_StreetTrees_M
-trees.py  
+### Address Downloader
+`addr:*`
+
+### Adopt-a-Park
+### Affordable Housing
+`landuse=residential`
+
+### Annexations
+### Bikeways
+`amenity=bicycle_parking`, `highway=path`, `cycleway=lane`, `cycleway=shared_lane`
+
+### Bridge Housing
+### Building Permits
+### Capital Projects
+### City Council Districts
+### Code Complaints
+### Community Centers
+`amenity=community_centre`, `leisure=swimming_pool`, `leisure=park`
+
+### Concentrated Poverty
+### Cone Zone
+### Development Inspectors
+### Development Projects
+`landuse=construction`
+
+### Downtown Parking
+`amenity=vending_machine`+`vending=parking_tickets`, `amenity=parking`
+
+### Emergency Shelters
+### General Plan 2040
+### GIS REST Services
+### Growth Areas 2040
+### Heritage Trees
 `natural=tree`
+
+### Historic Resources
+### Illegal Dumping
+### Incorporated Area
+`boundary=administrative`+`admin_level=8`
+
+### Land Use Zoning
+`landuse=*`
+
+### Language Map
+### Meal Providers
+### Mobilehome Parks
+`landuse=residential`
+
+### Off-Sale Alcohol
+### Parcels
+### Parks
+`leisure=park`
+
+### Parks Conditions
+### Parks Measure P
+### Permit Areas (3-Dash)
+### Planning Permits
+### Public GIS Viewer
+### Rent Stabilized Apts
+`residential=apartments`
+
+### Residential Services
+### Road Conditions
+### Sandbag Locations
+### Scenic Landscape
+`landuse=grass`
+
+### Signals
+`highway=traffic_signals`, `crossing=traffic_signals`
+
+### Small Cell Screening
+`communication:*`
+
+### Speed Limits
+`maxspeed=*`
+
+### Sphere of Influence
+### Street Trees
+`natural=tree`
+
+### Streetlights
+`highway=street_lamp`/`light_source=lantern`
+
+### Streets & Intersections
+`highway=*`
+
+### Subdivisions (Tracts)
+### Survey Benchmarks
+`man_made=survey_point`
+
+### Traffic Volume
+### Utility Inspectors
+### Utility Viewer 
 
 ## [San Jose ArcGIS server](https://geo.sanjoseca.gov/server/rest/services)
 Part or whole can be downloaded with download mapserer.py. Need to index and survey in full.
