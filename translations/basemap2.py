@@ -50,8 +50,6 @@ def filterTags(attrs):
         # Always appear, has equivalent
         if attrs["ADACOMPLY"] == "Yes":
             tags["wheelchair"] = "yes"
-        if attrs["COVERED"] == "Yes":
-            tags["covered"] = "yes"
             
         # Unused: WIDTH, AREA
         
