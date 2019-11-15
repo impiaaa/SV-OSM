@@ -13,15 +13,15 @@ def filterTags(attrs):
         print("filterTags: empty")
         return None
     
-    tags = {"sjc:zoning": attrs["ZONING"], "sjc:pduse": attrs["PDUSE"]}
+    tags = {}#{"sjc:zoning": attrs["ZONING"], "sjc:pduse": attrs["PDUSE"]}
     
-    if attrs["ZONING"] in ("Commercial Pede", "Commercial Gene", "Main Street Com", "Commercial Offi", "Main Street Gro", "Downtown Primar"):
+    if attrs["ZONING"] in ("Commercial Offi", "Industrial Park", "Commercial Gene"):
         tags["landuse"] = "commercial"
-    elif attrs["ZONING"] in ("Heavy Industria", "Industrial Park", "Light Industria"):
+    elif attrs["ZONING"] in ("Heavy Industria", "Light Industria", "Main Street Com"):
         tags["landuse"] = "industrial"
     elif attrs["ZONING"] in ("Mobilehome Park", "Multiple Reside", "Rural Residenti", "Cluster (R-1-8", "Single-Family R", "Two-Family Resi", "Cluster (R-1-5"):
         tags["landuse"] = "residential"
-    elif attrs["ZONING"] == "Commercial Neig":
+    elif attrs["ZONING"] == ("Main Street Gro", "Commercial Neig", "Commercial Pede", "Downtown Primar"):
         tags["landuse"] = "retail"
     elif attrs["ZONING"] == "Agriculture":
         tags["landuse"] = "farmland"
@@ -30,16 +30,14 @@ def filterTags(attrs):
     elif attrs["ZONING"] == "Planned Develop":
         if attrs["PDUSE"] == "Cemetary":
             tags["landuse"] = "cemetary"
-        elif attrs["PDUSE"] == "Res":
+        elif attrs["PDUSE"] in ("Res", "Multi-Family Re"):
             tags["landuse"] = "residential"
-        elif attrs["PDUSE"] in ("Com", "CP"):
+        elif attrs["PDUSE"] in ("CP", "Ind"):
             tags["landuse"] = "commercial"
-        elif attrs["PDUSE"] == "Multi-Family Re":
-            tags["landuse"] = "residential"
-        elif attrs["PDUSE"] == "Com/Restaurant":
+        elif attrs["PDUSE"] in ("Com", "Com/Restaurant"):
             tags["landuse"] = "retail"
-        elif attrs["PDUSE"] == "Ind":
-            tags["landuse"] = "industrial"
+        #elif attrs["PDUSE"] == :
+        #    tags["landuse"] = "industrial"
         elif attrs["PDUSE"] == "Hotel/Motel":
             tags["tourism"] = "hotel"
         else:
