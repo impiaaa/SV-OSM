@@ -343,6 +343,7 @@ seems to be sparse
 ### Off-Sale Alcohol
 ### Parcels
 ### Parks
+parks.py  
 `leisure=park`
 
 ### Parks Conditions
@@ -412,9 +413,13 @@ Part or whole can be downloaded with download mapserer.py. Need to index and sur
 * Parcels
 * County Or Other
 
-### DOT/DOT_TreeKeeper_StreetTrees_M
+### DOT/DOT_TreeKeeper_StreetTrees
 trees.py  
 `natural=tree`
+
+### PRNS/PRN_MapsGallery_Parks
+parks.py  
+`leisure=park`
 
 ## [Santa Clara County ArcGIS server](https://www.sccgov.org/gis/rest/services)
 Part or whole can be downloaded with download mapserer.py. Need to index and survey in full.
