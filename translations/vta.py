@@ -337,7 +337,6 @@ def filterTags(attrs):
         if attrs["LINE_TYPE"] == "Light Rail":
             tags["route"] = "light_rail"
         else:
-            # different kinds of bus lines--should we distinguish?
             tags["route"] = "bus"
 
         if attrs["DESTINATIONSI"].startswith(attrs["LINEABBR"]) and attrs["DESTINATIONSI"] and attrs["LINEABBR"]:
@@ -391,6 +390,11 @@ def filterTags(attrs):
         #tags["gtfs_trip_headsign"] = attrs["DESTINATIONSI"]
         if attrs["LINEABBR"]: tags["gtfs_route_short_name"] = attrs["LINEABBR"]
         tags["gtfs_route_long_name"] = attrs["LINENAME"]
+        if attrs["LINE_TYPE"] == "Local":
+            tags["passenger"] = "local"
+        elif attrs["LINE_TYPE"] == "Express":
+            tags["passenger"] = "regional"
+        # others: passenger=urban/suburban, school=yes, by_night=yes
 
         # VTA tags without a translation
         if True:
