@@ -1,9 +1,14 @@
 def filterLayer(layer):
-    if layer.GetName() == "linestrings2":
+    if layer.GetName() == "lines2":
         return layer
 
 def filterTags(attrs):
-    return {"highway": "footway",
+    tags = {"highway": "footway",
             "footway": "sidewalk",
-            "wheelchair": ["no", "yes"][int(attrs["adacomply"])]}
+            "surface": "paved"}
+    if int(attrs["adacomply"]):
+        tags["wheelchair"] = "yes"
+    if attrs["meterwidth"]:
+        tags["width"] = "%.1f"%float(attrs["meterwidth"])
+    return tags
 
