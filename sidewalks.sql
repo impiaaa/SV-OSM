@@ -30,21 +30,21 @@ create temporary table segments as
    from split_sidewalks);
 delete from segments where ST_Length(geom)=0;
 
--- join segments into longer strings, now ignoring 'covered'
+-- join segments into longer strings
 create temporary table lines as
-  select adacomply, (ST_Dump(ST_LineMerge(ST_Collect(geom)))).geom as geom
+  select adacomply, covered, (ST_Dump(ST_LineMerge(ST_Collect(geom)))).geom as geom
   from segments
-  group by adacomply;
--- delete stubs
-delete from lines where ST_Length(geom) < 4;
+  group by adacomply, covered;
+-- delete spurs
+delete from lines where ST_Length(geom) < 11 and ST_NPoints(geom) < 4;
 alter table lines add column id bigserial;
 drop table segments;
 
--- split again into segments, this time without stubs
+-- split again into segments, this time without spurs
 create table segments as
   with series as
     (select generate_series(1, ST_NPoints(geom)-1) as num, id from lines)
-  select lines.id as lineid, num, adacomply, 0.0 as width, ST_Length(geom) as len,
+  select lines.id as lineid, num, adacomply, covered, 0.0 as width, ST_Length(geom) as len,
     ST_MakeLine(
       ST_PointN(geom, num),
       ST_PointN(geom, num + 1)) as geom
@@ -75,10 +75,10 @@ drop table rings;
 drop table split_sidewalks;
 
 create temporary table endpoints as
-  select lineid, num, adacomply, width, len, ST_StartPoint(segments.geom) as geom, id
+  select lineid, num, adacomply, covered, width, len, ST_StartPoint(segments.geom) as geom, id
   from segments
 --  where num=(select min(sub.num) from segments as sub where sub.lineid=segments.lineid)
-  union select lineid, num, adacomply, width, len, ST_EndPoint(segments.geom) as geom, id
+  union select lineid, num, adacomply, covered, width, len, ST_EndPoint(segments.geom) as geom, id
   from segments;
 --  where num=(select max(sub.num) from segments as sub where sub.lineid=segments.lineid);
 create index on endpoints using GIST(geom);
@@ -87,7 +87,7 @@ delete from endpoints as a
   where a.geom=b.geom
   and a.id!=b.id;
 insert into segments
-  select a.lineid, -1, a.adacomply, a.width, a.len, ST_MakeLine(a.geom, ST_Centroid(ST_Collect(a.geom, b.geom)))
+  select a.lineid, -1, a.adacomply, a.covered, a.width, a.len, ST_MakeLine(a.geom, ST_Centroid(ST_Collect(a.geom, b.geom)))
   from endpoints as a
   join endpoints as b
   on ST_DWithin(a.geom, b.geom, a.width+b.width+1)
@@ -106,8 +106,11 @@ create temporary table lines as
   group by adacomply, meterWidth;
 alter table lines add column gid bigserial;
 --drop table segments;
+-- Not useful to have tiny segments just because of differing widths
 update lines set meterWidth=null where ST_Length(geom)*0.3048 < meterWidth-0.5;
 
+-- Re-join with tiny segments combined
+drop table if exists lines2;
 create table lines2 as
   select adacomply, meterWidth, (ST_Dump(ST_LineMerge(ST_Collect(geom)))).geom as geom
   from lines

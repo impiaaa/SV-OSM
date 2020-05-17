@@ -52,5 +52,4 @@ def filterTags(attrs):
         if attrs["adaoverallcompliance"] == "Compliant":
             tags["wheelchair"] = "yes"
         return tags
-    print("Returning None for", attrs)
 

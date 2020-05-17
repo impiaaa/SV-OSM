@@ -26,9 +26,11 @@ create temporary table linesXform as
 alter table linesXform add column gid bigserial;
 create index on linesXform using GIST(geom);
 drop table if exists rampLines;
+-- idk how this works (it creates duplicates)
 create table rampLines as
-  select ST_ShortestLine(curbRamps.geom, A.geom) as geom, cast ('up' as character varying(4)) as incline, (A.adacomply and curbRamps.adaoverallcompliance='Compliant') as adacomply from curbRamps left outer join linesXform as A on A.geom && ST_Expand(curbRamps.geom, 8) left outer join linesXform as B on B.geom && ST_Expand(curbRamps.geom, 8) and ST_Distance(curbRamps.geom, B.geom) < ST_Distance(curbRamps.geom, A.geom) where B.gid is null;
+  select ST_ShortestLine(curbRamps.geom, A.geom) as geom, cast ('up' as character varying(4)) as incline, (A.adacomply and curbRamps.adaoverallcompliance='Compliant') as adacomply from curbRamps left outer join linesXform as A on A.geom && ST_Expand(curbRamps.geom, 10) left outer join linesXform as B on B.geom && ST_Expand(curbRamps.geom, 10) and ST_Distance(curbRamps.geom, B.geom) < ST_Distance(curbRamps.geom, A.geom) where B.gid is null;
 alter table rampLines add column gid bigserial;
+delete from rampLines as A using rampLines as B where A.gid>B.gid and ST_Equals(A.geom, B.geom);
 -- Mix up the inclines
 update rampLines set incline='down', geom=ST_Reverse(geom) where (gid%2)=0;
 
