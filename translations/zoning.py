@@ -13,38 +13,51 @@ def filterTags(attrs):
         print("filterTags: empty")
         return None
     
-    tags = {}#{"sjc:zoning": attrs["ZONING"], "sjc:pduse": attrs["PDUSE"]}
+    tags = {}#{"sjc:zoning": attrs["zoningabbrev"], "sjc:pduse": attrs["pduse"]}
     
-    if attrs["ZONING"] in ("Commercial Offi", "Industrial Park", "Commercial Gene"):
-        tags["landuse"] = "commercial"
-    elif attrs["ZONING"] in ("Heavy Industria", "Light Industria", "Main Street Com"):
-        tags["landuse"] = "industrial"
-    elif attrs["ZONING"] in ("Mobilehome Park", "Multiple Reside", "Rural Residenti", "Cluster (R-1-8", "Single-Family R", "Two-Family Resi", "Cluster (R-1-5"):
+    zabbr = attrs["zoningabbrev"][:attrs["zoningabbrev"].find('(')] if '(' in attrs["zoningabbrev"] else attrs["zoningabbrev"]
+    pduse = attrs["pduse"]
+    
+    if pduse == "Cemetary":
+        tags["landuse"] = "cemetery"
+
+    elif pduse == "Hotel/Motel":
+        tags["tourism"] = "hotel"
+
+    elif zabbr.startswith("R"):
         tags["landuse"] = "residential"
-    elif attrs["ZONING"] == ("Main Street Gro", "Commercial Neig", "Commercial Pede", "Downtown Primar"):
+        if zabbr == "R-1-RR":
+            tags["residential"] = "rural"
+        elif zabbr == "R-MH":
+            tags["residential"] = "halting_site"
+        elif zabbr.startswith("R-1"):
+            tags["residential"] = "single_family"
+        elif zabbr.startswith("R-M"):
+            tags["residential"] = "urban"
+    
+    elif pduse in ("Res", "Multi-Family Re"):
+        tags["landuse"] = "residential"
+    
+    elif pduse in ("Com", "CIC"):
+        tags["landuse"] = "commercial"
+    
+    elif pduse in ("CP", "Com/Restaurant", "Retail and Park"):
         tags["landuse"] = "retail"
-    elif attrs["ZONING"] == "Agriculture":
+    
+    elif attrs["zoningabbrev"] == "A":
         tags["landuse"] = "farmland"
-    elif attrs["ZONING"] == "Water":
+    
+    elif zabbr in ("CO", "CIC", "IP"):
+        tags["landuse"] = "commercial"
+    
+    elif zabbr in ("CP", "CN", "CG", "MS-C"):
+        tags["landuse"] = "retail"
+    
+    elif zabbr in ("LI", "HI"):
+        tags["landuse"] = "industrial"
+    
+    elif zabbr == "WATER":
         tags["natural"] = "water"
-    elif attrs["ZONING"] == "Planned Develop":
-        if attrs["PDUSE"] == "Cemetary":
-            tags["landuse"] = "cemetary"
-        elif attrs["PDUSE"] in ("Res", "Multi-Family Re"):
-            tags["landuse"] = "residential"
-        elif attrs["PDUSE"] in ("CP", "Ind"):
-            tags["landuse"] = "commercial"
-        elif attrs["PDUSE"] in ("Com", "Com/Restaurant"):
-            tags["landuse"] = "retail"
-        #elif attrs["PDUSE"] == :
-        #    tags["landuse"] = "industrial"
-        elif attrs["PDUSE"] == "Hotel/Motel":
-            tags["tourism"] = "hotel"
-        else:
-            # nothing more specific, but keep around to prevent others taking space
-            tags["area"] = "yes"
-    else:
-        tags["area"] = "yes"
     
     return tags
 
