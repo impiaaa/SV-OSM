@@ -11,13 +11,15 @@
 ***************************************************************************
 """
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QVariant, QDateTime
 from qgis.core import (QgsProcessing,
                        QgsFeatureSink,
+                       QgsField,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
                        QgsProcessingParameterFeatureSource,
                        QgsProcessingParameterFeatureSink,
+                       QgsProcessingParameterField,
                        QgsExpression,
                        QgsFeatureRequest,
                        QgsVectorLayer,
@@ -33,6 +35,9 @@ class DateDissolve(QgsProcessingAlgorithm):
 
     INPUT = 'INPUT'
     OUTPUT = 'OUTPUT'
+    STARTDATEFIELD = 'STARTDATEFIELD'
+    ENDDATEFIELD = 'ENDDATEFIELD'
+    DISSOLVEFIELD = 'DISSOLVEFIELD'
 
     def tr(self, string):
         """
@@ -100,6 +105,32 @@ class DateDissolve(QgsProcessingAlgorithm):
                 [QgsProcessing.TypeVectorAnyGeometry]
             )
         )
+        
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.STARTDATEFIELD,
+                self.tr('Start date field'),
+                parentLayerParameterName=self.INPUT,
+                type=QgsProcessingParameterField.DateTime
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.ENDDATEFIELD,
+                self.tr('End date field'),
+                parentLayerParameterName=self.INPUT,
+                type=QgsProcessingParameterField.DateTime,
+                optional=True
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterField(
+                self.DISSOLVEFIELD,
+                self.tr('Dissolve field'),
+                parentLayerParameterName=self.INPUT,
+                allowMultiple=True
+            )
+        )
 
         # We add a feature sink in which to store our processed features (this
         # usually takes the form of a newly created vector layer when the
@@ -131,19 +162,30 @@ class DateDissolve(QgsProcessingAlgorithm):
         # helper text for when a source cannot be evaluated
         if source is None:
             raise QgsProcessingException(self.invalidSourceError(parameters, self.INPUT))
+        
+        startDateField = self.parameterAsString(
+            parameters,
+            self.STARTDATEFIELD,
+            context
+        )
+        endDateField = self.parameterAsString(
+            parameters,
+            self.ENDDATEFIELD,
+            context
+        )
+
+        fields = source.fields()
+        if not endDateField: fields.append(QgsField('ENDDATE', QVariant.DateTime, 'DateTime'))
 
         (sink, dest_id) = self.parameterAsSink(
             parameters,
             self.OUTPUT,
             context,
-            source.fields(),
+            fields,
             source.wkbType(),
             source.sourceCrs()
         )
-
-        # Send some information to the user
-        feedback.pushInfo('CRS is {}'.format(source.sourceCrs().authid()))
-
+        
         # If sink was not created, throw an exception to indicate that the algorithm
         # encountered a fatal error. The exception text can be any string, but in this
         # case we use the pre-built invalidSinkError method to return a standard
@@ -151,49 +193,73 @@ class DateDissolve(QgsProcessingAlgorithm):
         if sink is None:
             raise QgsProcessingException(self.invalidSinkError(parameters, self.OUTPUT))
 
-        # Compute the number of steps to display within the progress bar and
-        # get features from source
-        features = source.getFeatures()
+        dissolveField = self.parameterAsFields(
+            parameters,
+            self.DISSOLVEFIELD,
+            context
+        )
 
-        dates = list(set([feature['ANNEXDATE'] for feature in features]+[feature['DISANNEXDATE'] for feature in features]))
-        dates.sort()
+        dissolveValues = set([tuple([feature[field] for field in dissolveField]) for feature in source.getFeatures()])
+        feedback.pushInfo('dissolveValues is {}'.format(dissolveValues))
 
-        total = 100.0 / len(dates) if len(dates) else 0
-
-        for i, startDate in enumerate(dates):
-            # Stop the algorithm if cancel button has been clicked
-            if feedback.isCanceled():
-                break
+        for dissolveValueSet in dissolveValues:
+            dissolveExpression = ' and '.join(['%s = %s'%(QgsExpression.quotedColumnRef(field),QgsExpression.quotedValue(value)) for field, value in zip(dissolveField, dissolveValueSet)])
+            feedback.pushInfo('dissolveExpression is {}'.format(dissolveExpression))
+            dissolveFilter = source.materialize(QgsFeatureRequest().setFilterExpression(dissolveExpression))
             
-            endDate = dates[i+1] if i+1 < len(dates) else None
+            features = list(dissolveFilter.getFeatures())
+            feedback.pushInfo('got {} features'.format(len(features)))
+            dates = set([feature[startDateField] for feature in features])
+            if endDateField:
+                dates.update([feature[endDateField] for feature in features])
+            dates = list([date for date in dates if isinstance(date, QDateTime)])
+            dates.sort()
+            feedback.pushInfo('dates is {}'.format(dates))
             
-            if endDate:
-                expression = '%s <= %s and (%s >= %s or %s is null)' % \
-                    (QgsExpression.quotedColumnRef('ANNEXDATE'),
-                     QgsExpression.quotedValue(startDate),
-                     QgsExpression.quotedColumnRef('DISANNEXDATE'),
-                     QgsExpression.quotedValue(endDate),
-                     QgsExpression.quotedColumnRef('DISANNEXDATE'))
-            else:
-                expression = '%s <= %s and %s is null' % \
-                    (QgsExpression.quotedColumnRef('ANNEXDATE'),
-                     QgsExpression.quotedValue(startDate),
-                     QgsExpression.quotedColumnRef('DISANNEXDATE'))
-            request = QgsFeatureRequest().setFilterExpression(expression)
-            vl = source.materialize(request)
+            for i, startDate in enumerate(dates):
+                # Stop the algorithm if cancel button has been clicked
+                if feedback.isCanceled():
+                    break
+                
+                endDate = dates[i+1] if i+1 < len(dates) else None
+                
+                dateExpression = '%s <= %s' % \
+                    (QgsExpression.quotedColumnRef(startDateField),
+                     QgsExpression.quotedValue(startDate))
+                if endDateField:
+                    if endDate:
+                        dateExpression += ' and (%s >= %s or %s is null)' % \
+                            (QgsExpression.quotedColumnRef(endDateField),
+                             QgsExpression.quotedValue(endDate),
+                             QgsExpression.quotedColumnRef(endDateField))
+                    else:
+                        dateExpression += ' and %s is null' % \
+                            (QgsExpression.quotedColumnRef(endDateField))
+                feedback.pushInfo('dateExpression is {}'.format(dateExpression))
+                #req = QgsFeatureRequest().setFilterExpression(dateExpression)
+                req = QgsFeatureRequest().setFilterExpression(dissolveExpression+' and '+dateExpression)
+                feedback.pushInfo('req is {}'.format(req))
+                #vl = dissolveFilter.materialize(req)
+                vl = source.materialize(req)
+                feedback.pushInfo('vl is {}'.format(vl))
+                feedback.pushInfo('vl has {}'.format(list(vl.getFeatures())))
+                if not vl.hasFeatures(): continue
 
-            dissolved_layer = processing.run("native:dissolve", {
-                'INPUT': vl,
-                'OUTPUT': 'memory:'
-            }, context=context)['OUTPUT']
-            
-            for f in dissolved_layer.getFeatures():
-                f['ANNEXDATE'] = startDate
-                f['DISANNEXDATE'] = endDate
-                sink.addFeature(f)
+                dissolved_layer = processing.run("native:dissolve", {
+                    'INPUT': vl,
+                    'OUTPUT': 'memory:'
+                }, context=context)['OUTPUT']
+                
+                for f in dissolved_layer.getFeatures():
+                    f[startDateField] = startDate
+                    if endDateField: f[endDateField] = endDate
+                    else:
+                        f.setFields(fields)
+                        f['ENDDATE'] = endDate
+                    sink.addFeature(f)
 
-            # Update the progress bar
-            feedback.setProgress(int(i * total))
+                # Update the progress bar
+                #feedback.setProgress(int(i * total))
 
         # Return the results of the algorithm. In this case our only result is
         # the feature sink which contains the processed features, but some
