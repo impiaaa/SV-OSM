@@ -1,0 +1,125 @@
+Cupertino
+    Buildings
+        https://gis-cupertino.opendata.arcgis.com/datasets/452e4cc13f184a78ac803eba88766c78_9/explore?location=37.315891%2C-122.042550%2C13.74&showTable=true
+        2015
+        ele, height, building:levels, start_date
+    Addresses
+        https://gis-cupertino.opendata.arcgis.com/datasets/481a32e632d445f0a26c469e8f4477df_0/explore?location=37.335589%2C-122.064471%2C17.07
+        https://gis-cupertino.opendata.arcgis.com/datasets/569feda6b1c1426f8f7d3fbf1d0b9a99_1/explore?location=37.336394%2C-122.064238%2C17.13
+        2015-2019? 2023?
+        addr:housenumber, addr:street, addr:city, addr:state, addr:postcode, level, building=*
+    Parcels
+        https://gis-cupertino.opendata.arcgis.com/datasets/56d990c0ce314e0782d94ca32c4b8e32_11/explore?location=37.308081%2C-122.062950%2C13.18&showTable=true
+        2023
+Milpitas
+    Buildings
+        https://milpitas-gis-milpitas.hub.arcgis.com/datasets/a5e7522649cf48648ebc14e9e53cbdf5_0/explore?location=37.429286%2C-121.892600%2C12.07
+        2013-2020
+    Addresses
+        https://milpitas-gis-milpitas.hub.arcgis.com/maps/c9b3c92ce95a464288173d87a0f3f0a9/about
+        2024
+        addr:housenumber, addr:street, addr:unit, building, addr:city, addr:postcode
+    Parcels
+        https://milpitas-gis-milpitas.hub.arcgis.com/datasets/5c3ac71fc78341769d108d7a030df6d6_0/explore?location=37.429286%2C-121.892600%2C12.07&showTable=true
+        2024
+Sunnyvale
+    Buildings
+        https://sunnyvale-geohub-cityofsunnyvale.hub.arcgis.com/datasets/86f3b489e2564f10879368054757b41f_0/explore?location=37.380196%2C-122.023995%2C12.81&showTable=true
+        2021?
+        height, ele, building, addr:full, addr:unit?, building:levels
+    Addresses
+        https://sunnyvale-geohub-cityofsunnyvale.hub.arcgis.com/datasets/0975c44d98b645cfb04f3daae9d1e6da_0/explore?location=12.204052%2C-61.032269%2C3.44
+        2021-2023
+        addr:housenumber, addr:unit, addr:postcode, addr:street, building
+    Parcels
+        https://sunnyvale-geohub-cityofsunnyvale.hub.arcgis.com/datasets/81f57ae1ca49400f8a1a322eae53391c_0/explore
+        2021
+        addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, start_date, building:levels
+Santa Clara
+    Addresses
+        https://public-gis-missioncity.opendata.arcgis.com/datasets/82154505f73b4cd6821716ce47cae305_0/explore?location=37.353898%2C-121.953616%2C15.95
+        2024
+        addr:housenumber, addr:street, addr:unity, addr:city, addr:postcode
+    Parcels
+        https://public-gis-missioncity.opendata.arcgis.com/datasets/missioncity::city-of-santa-clara-land-parcels/about
+        2023
+        addr:city, addr:postcode, start_date
+    Buildings
+        https://public-gis-missioncity.opendata.arcgis.com/datasets/ee83a3518a7249fda22866117463de3f_0/explore?location=37.354274%2C-121.955032%2C16.32&showTable=true
+        2015
+        ele, height
+San Jose
+    Addresses
+        https://gisdata-csj.opendata.arcgis.com/datasets/2e704ab2583843a9baf5ca2373752305_36/explore?location=37.303721%2C-121.815750%2C10.09
+        2024
+        addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, building
+Palo Alto
+    https://opengis.cityofpaloalto.org/OpenGisData/
+    Parcels
+        https://palo-alto.maps.arcgis.com/apps/webappviewer/index.html?id=e6e1fa52e7094b61b7ba654faf312001
+        ?
+        addr:housenumber, addr:unit, addr:street
+    Buildings
+        https://palo-alto.maps.arcgis.com/apps/webappviewer/index.html?id=b05e86c115514225a9c57f81b2e72d2f
+        ?
+        name
+    Addresses
+        https://palo-alto.maps.arcgis.com/apps/webappviewer/index.html?id=8d602a62cf6b49928d53fb8f71f1136a
+        ?
+        addr:unit, level, addr:street, addr:city, addr:postcode
+Campbell
+    Addresses
+        https://gis.lynxgis.com/arcgis/rest/services/Campbell/Addresses/MapServer
+        2024
+        addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, name
+    Buildings
+        https://gis.lynxgis.com/arcgis/rest/services/Campbell/CampbellBuildings/MapServer
+        2020
+    Parcels
+        https://gis.lynxgis.com/arcgis/rest/services/Campbell/ParcelsWeb/MapServer
+        2024
+        addr:housenumber, addr:street, addr:city, addr:state, addr:postcode, addr:unit, start_date, building:levels, building, level
+Los Altos
+    Parcels
+        https://map.losaltosca.gov/arcgis/rest/services/Public/PublicGISLayers/MapServer/56
+        ?
+        start_date, addr:full, addr:city, addr:state, addr:postcode
+Saratoga
+    Parcels
+        https://services3.arcgis.com/rExmJXzTylAKURvh/arcgis/rest/services/Parcels/FeatureServer/0
+        2024
+        level, addr:full, addr:city, addr:state, addr:postcode, start_date, addr:housenumber, addr:street, addr:unit
+    Addresses
+        https://tiles.arcgis.com/tiles/rExmJXzTylAKURvh/arcgis/rest/services/Addresses/VectorTileServer?cacheKey=afd956d42a6801f6&f=html
+Los Gatos
+    Addresses
+        https://tiles.arcgis.com/tiles/JAU7IM34hqT9y9ew/arcgis/rest/services/AddressLabels/MapServer
+    Buildings
+        https://tiles.arcgis.com/tiles/JAU7IM34hqT9y9ew/arcgis/rest/services/BuildingsVTG/VectorTileServer?cacheKey=b4adae4b97bfcaad&f=html
+    Parcels
+        https://services3.arcgis.com/JAU7IM34hqT9y9ew/arcgis/rest/services/Parcels/FeatureServer
+        2024
+        level, addr:full, addr:city, addr:state, addr:postcode, addr:housenumber, addr:street, addr:unit, building, start_date, building:levels
+Los Altos Hills
+    Addresses
+        https://gis.lynxgis.com/arcgis/rest/services/LosAltosHills/Los_Altos_Hills_Addresses/MapServer
+        ?
+        addr:housenumber, addr:street, addr:unit, addr:state, addr:postcode
+    Parcels
+        https://gis.lynxgis.com/arcgis/rest/services/LosAltosHills/ParcelsWeb/MapServer
+        2023
+        addr:full, addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, start_date, building:levels
+
+County
+    Buildings
+        https://data.sccgov.org/dataset/Buildings-Footprints-2D/8729-jdun/about_data
+        2020
+        ele, height
+    Parcels
+        https://data.sccgov.org/Government/Parcels/2bmn-3ayc/about_data
+        2023
+        addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode
+    Addresses?
+        https://services2.arcgis.com/tcv2cMrq63AgvbHF/arcgis/rest/services/Address_Points_Search_and_Labels_VIEW/FeatureServer/0
+        2021
+        addr:housenumber, addr:streetname
