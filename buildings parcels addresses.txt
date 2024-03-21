@@ -1,4 +1,6 @@
 Campbell
+    https://www.campbellca.gov/163/Planning -> https://www.campbellca.gov/987/Interactive-Map-Viewer
+    Disclaimer, no copyright claims
     Addresses
         https://gis.lynxgis.com/arcgis/rest/services/Campbell/Addresses/MapServer
         2024
@@ -11,6 +13,8 @@ Campbell
         2024
         addr:housenumber, addr:street, addr:city, addr:state, addr:postcode, addr:unit, start_date, building:levels, building, level
 Cupertino
+    https://www.cupertino.org/online-services/open-government-data/open-datahub
+    Disclaimer, no copyright claims
     Addresses
         https://gis-cupertino.opendata.arcgis.com/datasets/481a32e632d445f0a26c469e8f4477df_0/explore?location=37.335589%2C-122.064471%2C17.07
         https://gis-cupertino.opendata.arcgis.com/datasets/569feda6b1c1426f8f7d3fbf1d0b9a99_1/explore?location=37.336394%2C-122.064238%2C17.13
@@ -24,6 +28,7 @@ Cupertino
         https://gis-cupertino.opendata.arcgis.com/datasets/56d990c0ce314e0782d94ca32c4b8e32_11/explore?location=37.308081%2C-122.062950%2C13.18&showTable=true
         2023
 Gilroy
+    Not accessible from website
     Addresses
         https://gis.lynxgis.com/arcgis/rest/services/Gilroy/Addresses/MapServer
         2024
@@ -37,6 +42,8 @@ Gilroy
         2024
         level, addr:full, addr:city, addr:state, addr:postcode, addr:housenumber, addr:street, addr:unit, start_date, building:levels
 Los Altos
+    https://www.losaltosca.gov/development-services/page/public-gis-viewer
+    Disclaimer, no copyright
     Addresses
         https://map.losaltosca.gov/arcgis/rest/services/TRAKiT/TRAKiTData/MapServer/1
         ?
@@ -50,6 +57,8 @@ Los Altos
         ?
         start_date, addr:full, addr:city, addr:state, addr:postcode
 Los Altos Hills
+    https://www.losaltoshills.ca.gov/178/Planning-Department
+    No disclaimer or copyright
     Addresses
         https://gis.lynxgis.com/arcgis/rest/services/LosAltosHills/Los_Altos_Hills_Addresses/MapServer
         ?
@@ -59,6 +68,8 @@ Los Altos Hills
         2023
         addr:full, addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, start_date, building:levels
 Los Gatos
+    https://www.losgatosca.gov/932/Look-Up-Property---Interactive-GIS-Map
+    "The use of the maps and data are intended for public, non-commercial use." - is this binding?
     Addresses
         https://services3.arcgis.com/JAU7IM34hqT9y9ew/ArcGIS/rest/services/Addresses/FeatureServer
         2023
@@ -70,6 +81,8 @@ Los Gatos
         2024
         level, addr:full, addr:city, addr:state, addr:postcode, addr:housenumber, addr:street, addr:unit, building, start_date, building:levels
 Milpitas
+    https://www.milpitas.gov/378/Data-Maps
+    "No License Provided / Request permission to use"
     Addresses
         https://milpitas-gis-milpitas.hub.arcgis.com/maps/c9b3c92ce95a464288173d87a0f3f0a9/about
         2024
@@ -83,6 +96,8 @@ Milpitas
 Monte Sereno
 Morgan Hill
 Mountain View
+    https://maps.mountainview.gov/ - seemingly not linked from main site?
+    "No License Provided / Request permission to use"
     Addresses
         https://data-mountainview.opendata.arcgis.com/datasets/MountainView::address-points/about
         2019
@@ -97,6 +112,7 @@ Mountain View
         addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode
 Palo Alto
     https://opengis.cityofpaloalto.org/OpenGisData/
+    No copyright, disclaimer link broken
     Addresses
         https://palo-alto.maps.arcgis.com/apps/webappviewer/index.html?id=8d602a62cf6b49928d53fb8f71f1136a
         ?
@@ -110,6 +126,8 @@ Palo Alto
         ?
         addr:housenumber, addr:unit, addr:street
 San Jose
+    https://www.sanjoseca.gov/your-government/departments-offices/public-works/city-maps -> https://gisdata-csj.opendata.arcgis.com/ -> https://gis.sanjoseca.gov/maps/publicgisviewer/
+    Disclaimer, no copyright
     Addresses
         https://gisdata-csj.opendata.arcgis.com/datasets/2e704ab2583843a9baf5ca2373752305_36/explore?location=37.303721%2C-121.815750%2C10.09
         2024
@@ -122,6 +140,8 @@ San Jose
         https://geo.sanjoseca.gov/server/rest/services/PLN/PLN_Geocortex_Public_PRD/MapServer/49
         2024
 Santa Clara
+    https://www.santaclaraca.gov/our-city/about-santa-clara/maps
+    "Except where otherwise stated in the file containing such Data or on the page from which such Data is accessed, including its metadata, Data is made available under the Public Domain Dedication and License v1.0"
     Addresses
         https://public-gis-missioncity.opendata.arcgis.com/datasets/82154505f73b4cd6821716ce47cae305_0/explore?location=37.353898%2C-121.953616%2C15.95
         2024
@@ -135,6 +155,8 @@ Santa Clara
         2023
         addr:city, addr:postcode, start_date
 Saratoga
+    https://www.saratoga.ca.us/150/Community-Development
+    No copyright or disclaimer
     Addresses
         https://services3.arcgis.com/rExmJXzTylAKURvh/ArcGIS/rest/services/AddressPt/FeatureServer
         2023?
@@ -144,6 +166,8 @@ Saratoga
         2024
         level, addr:full, addr:city, addr:state, addr:postcode, start_date, addr:housenumber, addr:street, addr:unit
 Sunnyvale
+    https://www.sunnyvale.ca.gov/city-services/online-services/maps-and-gis
+    "Unless a copyright is indicated, information on the City’s website is in the public domain and may be reproduced, published or otherwise used with the City’s permission." on main site
     Addresses
         https://sunnyvale-geohub-cityofsunnyvale.hub.arcgis.com/datasets/0975c44d98b645cfb04f3daae9d1e6da_0/explore?location=12.204052%2C-61.032269%2C3.44
         2021-2023
@@ -158,6 +182,7 @@ Sunnyvale
         addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, start_date, building:levels
 
 County
+    "Sanborn Map Company, Inc., utilized a total of 25 ground control points that were used to calibrate the lidar to known ground locations established throughout the project area"
     Addresses?
         https://services2.arcgis.com/tcv2cMrq63AgvbHF/arcgis/rest/services/Address_Points_Search_and_Labels_VIEW/FeatureServer/0
         2021
