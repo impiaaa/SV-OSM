@@ -8,6 +8,7 @@ Campbell
     Buildings
         https://gis.lynxgis.com/arcgis/rest/services/Campbell/CampbellBuildings/MapServer
         2020
+        apparently from the county
     Parcels
         https://gis.lynxgis.com/arcgis/rest/services/Campbell/ParcelsWeb/MapServer
         2024
@@ -50,8 +51,9 @@ Los Altos
         addr:housenumber, addr:unit, addr:city, addr:street, addr:postcode
     Buildings
         https://map.losaltosca.gov/arcgis/rest/services/Public/Building_2022LiDAR_Footprints/MapServer
-        ?
+        2020
         ele, height
+        duplicate of county
     Parcels
         https://map.losaltosca.gov/arcgis/rest/services/Public/PublicGISLayers/MapServer/56
         ?
