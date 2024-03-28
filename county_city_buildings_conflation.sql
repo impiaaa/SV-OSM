@@ -1,5 +1,4 @@
 -- TODO:
--- Align layers (median difference in centroids) before calculating similarity (and maybe use Hausdorff)
 -- Intersections should be "significant" to consider (ratio between intersection area and...?)
 
 \set ON_ERROR_STOP on
@@ -22,6 +21,24 @@ on
 using
     gist(loc_geom);
 
+alter table
+    county_buildings
+add if not exists
+    centroid
+    geometry('POINT', 2227);
+update
+    county_buildings
+set
+    centroid=ST_Centroid(loc_geom)
+where
+    centroid is null;
+create index if not exists
+    county_centroid_index
+on
+    county_buildings
+using
+    gist(centroid);
+
 drop table if exists
     city_buildings;
 create table
@@ -41,6 +58,37 @@ create table
         data_date timestamp
     );
 
+with
+    gilroy_centroids
+as (
+    select
+        ST_Centroid(geom) as geom
+    from
+        gilroy_buildings
+),
+    diffs
+as (
+    select
+        ST_X(county_buildings.centroid) - ST_X(gilroy_centroids.geom) as x,
+        ST_Y(county_buildings.centroid) - ST_Y(gilroy_centroids.geom) as y,
+        row_number() over (partition by gilroy_centroids.* order by ST_Distance(county_buildings.centroid, gilroy_centroids.geom)) as rn
+    from
+        gilroy_centroids
+    left join
+        county_buildings
+    on
+        ST_Distance(county_buildings.centroid, gilroy_centroids.geom) < 100
+),
+    adjustment
+as (
+    select
+        percentile_cont(0.5) within group (order by x) as x,
+        percentile_cont(0.5) within group (order by y) as y
+    from
+        diffs
+    where
+        rn = 1
+)
 insert into
     city_buildings
     (building, name, addr_full, flats, addr_city, data_date, geom)
@@ -53,9 +101,9 @@ select
         when BldgSubtype='GOVT_FAC' then 'government'
         when BldgSubtype='MUSEUM' then 'museum'
         when BldgSubtype='OFFICE' then 'office'
-        when BldgSubtype='SCHOOL' then 'SCHOOL'
+        when BldgSubtype='SCHOOL' then 'school'
         when BldgSubtype='UTILITY' then 'service'
-        when BldgType='COMMERCIAL' then 'commercial'
+        when BldgType='COMMERCIAL' then 'retail'
         when BldgType='INDUSTRIAL' then 'industrial'
         when BldgType='PUBLIC_FAC' then 'civic'
         when BldgType='RESIDENTIAL' then 'residential'
@@ -65,10 +113,14 @@ select
     Address as addr_full,
     NumberOfUnits as flats,
     City as addr_city,
-    coalesce(to_timestamp(CreateDate::integer * 100), to_timestamp(RevDate::integer * 100), '2023-08-01 00:00:00'::timestamp) as data_date,
-    wkb_geometry as geom
+    coalesce(CreateDate, RevDate, '2023-08-01 00:00:00'::timestamp) as data_date,
+    ST_Translate(geom, adjustment.x, adjustment.y) as geom
 from
-    gilroy_buildings;
+    gilroy_buildings
+left join
+    adjustment
+on
+    1 = 1;
 
 create index if not exists
     city_geom_index
@@ -125,7 +177,8 @@ as (
     select distinct
         county_buildings.*,
         count(city_buildings.*) as intersection_count,
-        ST_Area(ST_SymmetricDifference(county_buildings.loc_geom, ST_Union(city_buildings.geom)))/ST_Area(county_buildings.loc_geom) < 0.25 as similar_shape
+        --ST_Area(ST_SymmetricDifference(county_buildings.loc_geom, ST_Union(city_buildings.geom)))/ST_Area(county_buildings.loc_geom) < 0.25 as similar_shape
+        ST_HausdorffDistance(county_buildings.loc_geom, ST_Union(city_buildings.geom)) < 15 as similar_shape
     from
         county_buildings
     left join
@@ -143,7 +196,8 @@ as (
         min(county_intersections.base_heigh) as base_heigh,
         max(county_intersections.building_h) as building_h,
         count(county_intersections.*) as intersection_count,
-        ST_Area(ST_SymmetricDifference(city_buildings.geom, ST_Union(county_intersections.loc_geom)))/ST_Area(city_buildings.geom) < 0.25 as similar_shape,
+        --ST_Area(ST_SymmetricDifference(city_buildings.geom, ST_Union(county_intersections.loc_geom)))/ST_Area(city_buildings.geom) < 0.25 as similar_shape,
+        ST_HausdorffDistance(city_buildings.geom, ST_Union(county_intersections.loc_geom)) < 15 as similar_shape,
         city_buildings.data_date > '2020-01-01 00:00:00'::timestamp as newer,
         ST_NPoints(city_buildings.geom) > sum(ST_NPoints(county_intersections.loc_geom)) as higher_detail,
         sum(county_intersections.intersection_count) as other_intersection_count,
@@ -184,6 +238,7 @@ where
                 other_intersection_count = 1
                 and
                 (
+/*
                     (
                         intersections.similar_shape
                         and
@@ -195,6 +250,10 @@ where
                         and
                         intersections.newer
                     )
+*/
+                    intersections.similar_shape
+                    or
+                    intersections.newer
                 )
             )
             or
