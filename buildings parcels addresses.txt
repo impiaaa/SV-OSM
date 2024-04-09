@@ -136,8 +136,9 @@ San Jose
         addr:housenumber, addr:street, addr:unit, addr:city, addr:state, addr:postcode, building
     Buildings
         https://geo.sanjoseca.gov/server/rest/services/PLN/PLN_Geocortex_Public_PRD/MapServer/347
-        2021?
+        2020
         ele, height
+        duplicate of county
     Parcels
         https://geo.sanjoseca.gov/server/rest/services/PLN/PLN_Geocortex_Public_PRD/MapServer/49
         2024
