@@ -1,8 +1,98 @@
--- TODO:
--- Intersections should be "significant" to consider (ratio between intersection area and...?)
-
 \set ON_ERROR_STOP on
 
+-- Functions
+
+create or replace function
+    TranslateByPoint(
+        geom geometry,
+        point geometry(Point)
+    )
+returns
+    geometry
+language SQL
+immutable
+returns null on null input
+return
+    ST_Translate(geom, ST_X(point), ST_Y(point));
+
+create or replace function
+    adjustment_state(
+        state geometry(Point)[],
+        next geometry
+    )
+returns
+    geometry(Point)[]
+language
+    SQL
+strict
+as $$
+with
+    city_centroids
+as (
+    select
+        ST_Centroid(next) as geom
+),
+    diffs
+as (
+    select
+        ST_X(county_buildings.centroid) - ST_X(city_centroids.geom) as x,
+        ST_Y(county_buildings.centroid) - ST_Y(city_centroids.geom) as y,
+        row_number() over (partition by city_centroids.* order by ST_Distance(county_buildings.centroid, city_centroids.geom)) as rn
+    from
+        city_centroids
+    left join
+        county_buildings
+    on
+        ST_Distance(county_buildings.centroid, city_centroids.geom) < 100
+)
+select
+    array_append($1, ST_Point(x, y))
+from
+    diffs
+where
+    rn = 1
+$$;
+
+create or replace function
+    adjustment_final(
+        state geometry(Point)[]
+    )
+returns
+    geometry
+language
+    SQL
+strict
+as $$
+with
+    points
+as (
+    select ST_X(geom) as x, ST_Y(geom) as y from unnest(state) as geom
+)
+select
+    ST_Point(
+        percentile_cont(0.5) within group (order by x),
+        percentile_cont(0.5) within group (order by y)
+    )
+from
+    points
+$$;
+
+-- calculates the median difference between the closest county points to city points
+-- i.e., for each city building in the aggregate, take the centroid, find the closest county
+-- building centroid, and take the difference in coordinates, then take the median of those
+-- differences.
+create or replace aggregate
+    adjustment(geometry)
+(
+    sfunc = adjustment_state,
+    stype = geometry(Point)[],
+    initcond = '{}',
+    finalfunc = adjustment_final
+);
+
+-- Clean up input data
+
+-- Unify all geometry to EPSG:2227 (NAD83 California zone 3)
 alter table
     county_buildings
 add if not exists
@@ -21,6 +111,7 @@ on
 using
     gist(loc_geom);
 
+-- Pre-calculate the centroid of every building, for matching to city buildings
 alter table
     county_buildings
 add if not exists
@@ -39,6 +130,7 @@ on
 using
     gist(centroid);
 
+-- Create a table to hold input data from all cities
 drop table if exists
     city_buildings;
 create table
@@ -58,37 +150,7 @@ create table
         data_date timestamp
     );
 
-with
-    gilroy_centroids
-as (
-    select
-        ST_Centroid(geom) as geom
-    from
-        gilroy_buildings
-),
-    diffs
-as (
-    select
-        ST_X(county_buildings.centroid) - ST_X(gilroy_centroids.geom) as x,
-        ST_Y(county_buildings.centroid) - ST_Y(gilroy_centroids.geom) as y,
-        row_number() over (partition by gilroy_centroids.* order by ST_Distance(county_buildings.centroid, gilroy_centroids.geom)) as rn
-    from
-        gilroy_centroids
-    left join
-        county_buildings
-    on
-        ST_Distance(county_buildings.centroid, gilroy_centroids.geom) < 100
-),
-    adjustment
-as (
-    select
-        percentile_cont(0.5) within group (order by x) as x,
-        percentile_cont(0.5) within group (order by y) as y
-    from
-        diffs
-    where
-        rn = 1
-)
+-- Gilroy input data
 insert into
     city_buildings
     (building, name, addr_full, flats, addr_city, data_date, geom)
@@ -114,13 +176,9 @@ select
     NumberOfUnits as flats,
     City as addr_city,
     coalesce(CreateDate, RevDate, '2023-08-01 00:00:00'::timestamp) as data_date,
-    ST_Translate(geom, adjustment.x, adjustment.y) as geom
+    TranslateByPoint(geom, adjustment(geom) over ()) as geom
 from
-    gilroy_buildings
-left join
-    adjustment
-on
-    1 = 1;
+    gilroy_buildings;
 
 create index if not exists
     city_geom_index
@@ -129,46 +187,7 @@ on
 using
     gist(geom);
 
-/*
-with
-    county_intersections
-as (
-    select distinct
-        county_buildings.*,
-        count(city_buildings.*) as intersection_count,
-        ST_Area(ST_SymmetricDifference(county_buildings.loc_geom, ST_Union(city_buildings.geom)))/ST_Area(county_buildings.loc_geom) as similarity
-    from
-        county_buildings
-    left join
-        city_buildings
-    on
-        county_buildings.loc_geom && city_buildings.geom and
-        ST_Intersects(county_buildings.loc_geom, city_buildings.geom)
-    group by
-        county_buildings.gid, county_buildings.geom
-)
-select distinct
-    city_buildings.*,
-    min(county_intersections.base_heigh) as base_heigh,
-    max(county_intersections.building_h) as building_h,
-    count(county_intersections.*) as intersection_count,
-    ST_Area(ST_SymmetricDifference(city_buildings.geom, ST_Union(county_intersections.loc_geom)))/ST_Area(city_buildings.geom) as similarity,
-    city_buildings.data_date > '2020-01-01 00:00:00'::timestamp as newer,
-    ST_NPoints(city_buildings.geom) - sum(ST_NPoints(county_intersections.loc_geom)) as detail_diff,
-    sum(county_intersections.intersection_count) as other_intersection_count,
-    avg(county_intersections.similarity) as other_similarity
-into
-    city_building_metrics
-from
-    city_buildings
-left join
-    county_intersections
-on
-    city_buildings.geom && county_intersections.loc_geom and
-    ST_Intersects(city_buildings.geom, county_intersections.loc_geom)
-group by
-    city_buildings.gid, city_buildings.geom, city_buildings.data_date;
-*/
+-- Conflation
 
 drop table if exists import_buildings;
 with
@@ -184,8 +203,11 @@ as (
     left join
         city_buildings
     on
-        county_buildings.loc_geom && city_buildings.geom and
+        county_buildings.loc_geom && city_buildings.geom
+    and
         ST_Intersects(county_buildings.loc_geom, city_buildings.geom)
+    and
+        ST_Area(ST_Intersection(county_buildings.loc_geom, city_buildings.geom)) > 0.1*least(ST_Area(county_buildings.loc_geom), ST_Area(city_buildings.geom))
     group by
         county_buildings.gid, county_buildings.geom
 ),
@@ -207,8 +229,11 @@ as (
     left join
         county_intersections
     on
-        city_buildings.geom && county_intersections.loc_geom and
+        city_buildings.geom && county_intersections.loc_geom
+    and
         ST_Intersects(city_buildings.geom, county_intersections.loc_geom)
+    and
+        ST_Area(ST_Intersection(city_buildings.geom, county_intersections.loc_geom)) > 0.1*least(ST_Area(city_buildings.geom), ST_Area(county_intersections.loc_geom))
     group by
         city_buildings.gid, city_buildings.geom, city_buildings.data_date
 )
