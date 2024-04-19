@@ -37,13 +37,13 @@ as (
     select
         ST_X(county_buildings.centroid) - ST_X(city_centroids.geom) as x,
         ST_Y(county_buildings.centroid) - ST_Y(city_centroids.geom) as y,
-        row_number() over (partition by city_centroids.* order by ST_Distance(county_buildings.centroid, city_centroids.geom)) as rn
+        row_number() over (partition by city_centroids.* order by county_buildings.centroid <-> city_centroids.geom) as rn
     from
         city_centroids
     left join
         county_buildings
     on
-        ST_Distance(county_buildings.centroid, city_centroids.geom) < 100
+        ST_DWithin(county_buildings.centroid, city_centroids.geom, 100)
 )
 select
     array_append($1, ST_Point(x, y))
@@ -130,6 +130,12 @@ on
     county_buildings
 using
     gist(centroid);
+create index if not exists
+    county_centroid_expand_index
+on
+    county_buildings
+using
+    gist(ST_Expand(centroid, 100));
 
 -- Create a table to hold input data from all cities
 drop table if exists
@@ -329,6 +335,14 @@ from
 --    geom && ST_MakeBox2D(ST_Point(-122.02992506, 37.36562509), ST_Point(-122.02384854, 37.37157382))
 ;
 
+update
+    city_buildings
+set
+    geom=ST_MakeValid(geom, 'method=structure')
+where
+not
+    ST_IsValid(geom);
+
 create index if not exists
     city_geom_index
 on
@@ -338,8 +352,8 @@ using
 
 -- Conflation
 
-drop table if exists import_buildings;
-with
+drop table if exists county_intersections;
+create temporary table
     county_intersections
 as (
     select distinct
@@ -359,7 +373,15 @@ as (
         ST_Area(ST_Intersection(county_buildings.loc_geom, city_buildings.geom)) > 0.1*least(ST_Area(county_buildings.loc_geom), ST_Area(city_buildings.geom))
     group by
         county_buildings.gid, county_buildings.geom
-),
+);
+create index on
+    county_intersections
+using
+    gist(loc_geom);
+analyze county_intersections;
+
+drop table if exists import_buildings;
+with
     intersections
 as (
     select distinct
