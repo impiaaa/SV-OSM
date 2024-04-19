@@ -93,6 +93,7 @@ create or replace aggregate
 -- Clean up input data
 
 -- Unify all geometry to EPSG:2227 (NAD83 California zone 3)
+-- (better for geometry processing to use a local projection instead of WGS84)
 alter table
     county_buildings
 add if not exists
@@ -137,8 +138,8 @@ create table
     city_buildings
     (
         gid serial primary key,
-        addr_city varchar,
-        addr_full varchar,
+        --addr_city varchar,
+        --addr_full varchar,
         building varchar not null default 'yes',
         building_levels integer,
         ele real,
@@ -150,10 +151,39 @@ create table
         data_date timestamp
     );
 
+-- Cupertino input data
+insert into
+    city_buildings
+    (building, ele, height, building_levels, start_date, geom, data_date)
+select
+    case
+        when level_desc='Canopy' then 'roof'
+        when level_desc='Canopy Structure' then 'roof'
+        when level_desc='Shed' then 'shed'
+        else 'yes'
+    end as building,
+    bldg_low::real * 0.3048 as ele,
+    bldg_heigh * 0.3048 as height,
+    floornumbe as building_levels,
+    year_built as start_date,
+    TranslateByPoint(ST_Transform(geom, 2227), adjustment(ST_Transform(geom, 2227)) over ()) as geom,
+    coalesce(created_da, last_edi_1, '2011-01-01 00:00:00'::timestamp) as data_date
+from
+    cupertino_buildings
+where
+    (
+        level_desc is null
+    or
+        level_desc <> 'Swimming Pool'
+    )
+--and
+--    geom && ST_MakeBox2D(ST_Point(-122.03234334, 37.31612497), ST_Point(-122.02320717, 37.32295951))
+;
+
 -- Gilroy input data
 insert into
     city_buildings
-    (building, name, addr_full, flats, addr_city, data_date, geom)
+    (building, name, flats, data_date, geom)
 select
     case
         when BldgSubtype='APARTMENT' then 'apartments'
@@ -172,13 +202,132 @@ select
         else 'yes'
     end as building,
     BldgName as name,
-    Address as addr_full,
+    --Address as addr_full,
     NumberOfUnits as flats,
-    City as addr_city,
+    --City as addr_city,
     coalesce(CreateDate, RevDate, '2023-08-01 00:00:00'::timestamp) as data_date,
     TranslateByPoint(geom, adjustment(geom) over ()) as geom
 from
-    gilroy_buildings;
+    gilroy_buildings
+--where
+--    geom && ST_MakeBox2D(ST_Point(6248102.43, 1830062.04), ST_Point(6249915.61, 1831887.91))
+;
+
+-- Los Gatos input data
+insert into
+    city_buildings
+    (geom, data_date)
+select
+    TranslateByPoint(ST_Transform(geom, 2227), adjustment(ST_Transform(geom, 2227)) over ()) as geom,
+    '2014-08-13 00:00:00'::timestamp as data_date
+from
+    los_gatos_buildings;
+
+-- Milpitas input data
+insert into
+    city_buildings
+    (geom, data_date)
+select
+    TranslateByPoint(ST_Transform(geom, 2227), adjustment(ST_Transform(geom, 2227)) over ()) as geom,
+    coalesce(ts, '2019-04-04 00:00:00'::timestamp) as data_date
+from
+    milpitas_buildings
+where
+    (
+        descriptio is null
+    or
+        descriptio <> 'Pool'
+    )
+--and
+--    geom && ST_MakeBox2D(ST_Point(-121.88699722, 37.43042064), ST_Point(-121.88102339, 37.43545500))
+;
+
+-- Mountain View input data
+insert into
+    city_buildings
+    (building_levels, height, name, building, geom, data_date)
+select
+    numstories as building_levels,
+    bldgheight*0.3048 as height,
+    name as name,
+    case
+        --when type='Complex' then 'civic'
+        when type='Entertainment' then 'commercial'
+        --when type='Facility' then 'government'
+        when type='Gate House' then 'guardhouse'
+        --when type='Historic Site' then 'house'
+        when type='Hospital' then 'hospital'
+        --when type='Medical Center' then 'public'
+        --when type='Point of Interest' then 'military'
+        when type='Public Safety' then 'fire_station'
+        when type='Pump Station' then 'service'
+        when type='School' then 'school'
+        --when type='Senior Day Care' then 'civic'
+        when type='TOWNHOME' then 'terrace'
+        when type='TRASH ENCLOSURE' then 'shed'
+        else 'yes'
+    end as building,
+    TranslateByPoint(ST_Transform(ST_Force2D(geom), 2227), adjustment(ST_Transform(ST_Force2D(geom), 2227)) over ()) as geom,
+    coalesce(created_da, last_edi_1, '2017-07-31 00:00:00'::timestamp) as data_date
+from
+    mountain_view_buildings
+--where
+--    geom && ST_MakeBox2D(ST_Point(6102224.83, 1967959.21), ST_Point(6104152.70, 1969396.57))
+;
+
+-- Palo Alto input data
+insert into
+    city_buildings
+    (name, geom, data_date)
+select
+    case
+        when name='unk' then NULL
+        else name
+    end as name,
+    geom,
+    coalesce(createddat, modifiedda, '2022-07-07 00:00:00'::timestamp) as data_date
+from
+    palo_alto_buildings
+--where
+--    geom && ST_MakeBox2D(ST_Point(6079340.06, 1986794.79), ST_Point(6081101.01, 1988555.08))
+;
+
+-- Santa Clara (city) input data
+insert into
+    city_buildings
+    (ele, height, geom, data_date)
+select
+    baseelev*0.3048 as ele,
+    bldgheight*0.3048 as height,
+    TranslateByPoint(ST_Transform(ST_Force2D(geom), 2227), adjustment(ST_Transform(ST_Force2D(geom), 2227)) over ()) as geom,
+    '2015-03-01 00:00:00'::timestamp as data_date
+from
+    santa_clara_buildings
+--where
+--    geom && ST_MakeBox2D(ST_Point(6133736.57, 1943509.07), ST_Point(6136734.27, 1945938.40))
+;
+
+-- Sunnyvale input data
+insert into
+    city_buildings
+    (height, ele, building, building_levels, geom, data_date)
+select
+    bldg_heigh*0.3048 as height,
+    bldg_low::real as ele,
+    case
+        when bldg_type='Dwelling' then 'residential'
+        when bldg_type='Parking' then 'garages'
+        else 'yes'
+    end as building,
+    --initcap(address) as addr_full,
+    story as building_levels,
+    TranslateByPoint(ST_Transform(geom, 2227), adjustment(ST_Transform(geom, 2227)) over ()) as geom,
+    '2021-04-05 00:00:00'::timestamp as data_date
+from
+    sunnyvale_buildings
+--where
+--    geom && ST_MakeBox2D(ST_Point(-122.02992506, 37.36562509), ST_Point(-122.02384854, 37.37157382))
+;
 
 create index if not exists
     city_geom_index
@@ -238,8 +387,8 @@ as (
         city_buildings.gid, city_buildings.geom, city_buildings.data_date
 )
 select distinct
-    addr_city,
-    addr_full,
+    --addr_city,
+    --addr_full,
     building,
     building_levels,
     coalesce(ele, base_heigh*0.3048) as ele,
@@ -247,7 +396,7 @@ select distinct
     coalesce(height, building_h*0.3048) as height,
     name,
     start_date,
-    geom
+    ST_Translate(ST_Transform(geom, 4326), 0.0000049, -0.0000052)
 into
     import_buildings
 from
@@ -317,3 +466,4 @@ where
             )
         )
     );
+
