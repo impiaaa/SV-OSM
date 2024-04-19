@@ -290,7 +290,7 @@ select
         when name='unk' then NULL
         else name
     end as name,
-    geom,
+    TranslateByPoint(geom, adjustment(geom) over ()) as geom,
     coalesce(createddat, modifiedda, '2022-07-07 00:00:00'::timestamp) as data_date
 from
     palo_alto_buildings
