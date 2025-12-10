@@ -1,6 +1,7 @@
 import json, os, os.path
 from urllib.request import urlopen
 from urllib.parse import *
+import urllib
 from warnings import warn
 
 def getJson(url):
@@ -15,31 +16,42 @@ def urlAdd(base, *components):
     u = urlparse(base)
     return urlunparse(u._replace(path=u.path+'/'+'/'.join(components)))
 
-def parseServicesDirectory(url, j=None, path=None):
-    if j is None: j = getJson(url)
-    for service in j['services']:
+def parseServicesDirectory(url, j=None, path=None, indent=0):
+    try:
+        if j is None:
+            j = getJson(url)
+    except urllib.error.HTTPError as e:
+        print('  '*indent, e)
+        return
+    for service in j.get('services', []):
         if service['type'] in ('MapServer', 'FeatureServer'):
-            parseMapServer(urlAdd(url, service['name'].split('/')[-1], service['type']), path=service['name']+"_"+service['type'][0])
+            parseMapServer(urlAdd(url, service['name'].split('/')[-1], service['type']), path=service['name']+"_"+service['type'][0], indent=indent)
         else:
             warn("Unhandled service type "+service['type'])
-    for folder in j['folders']:
+    for folder in j.get('folders', []):
         if path is None:
             p = folder
         else:
             p = os.path.join(path, folder)
-        os.makedirs(p, exist_ok=True)
-        parseServicesDirectory(urlAdd(url, folder.split('/')[-1]), path=p)
+        #os.makedirs(p, exist_ok=True)
+        parseServicesDirectory(urlAdd(url, folder.split('/')[-1]), path=p, indent=indent+1)
 
-def parseMapServer(url, j=None, path=None):
-    if j is None: j = getJson(url)
+def parseMapServer(url, j=None, path=None, indent=0):
+    try:
+        if j is None:
+            j = getJson(url)
+    except urllib.error.HTTPError as e:
+        print('  '*indent, e)
+        return
     if path is None and 'mapName' in j:
         path = j['mapName']
-    print(path)
+    print('  '*indent, path)
     if 'serviceDescription' in j:
-        print(j['serviceDescription'])
-    if path is not None:
-        os.makedirs(path, exist_ok=True)
+        print('  '*indent, j['serviceDescription'])
+    #if path is not None:
+    #    os.makedirs(path, exist_ok=True)
     for layer in j['layers']:
+        if layer.get("type") != "Feature Layer": continue
         name = layer['name'].replace(os.path.sep, '_')
         if 'parentLayerId' in layer:
             parentLayerId = layer['parentLayerId']
@@ -48,24 +60,36 @@ def parseMapServer(url, j=None, path=None):
                 name = os.path.join(parents[0]['name'].replace(os.path.sep, '_'), name)
                 parentLayerId = parents[0]['parentLayerId']
             parentdir = os.path.split(name)[0]
-            if parentdir:
-                os.makedirs(parentdir, exist_ok=True)
+            #if parentdir:
+            #    os.makedirs(parentdir, exist_ok=True)
         name = name+"_"+str(layer['id'])
         if path is None:
             p = name
         else:
             p = os.path.join(path, name)
-        parseMapLayer(urlAdd(url, str(layer['id'])), path=p)
+        parseMapLayer(urlAdd(url, str(layer['id'])), path=p, indent=indent+1)
 
 cellCount = 8
+def isDateField(field):
+    return field["type"] == "esriFieldTypeDate" and field["name"] not in ("LASTUPDATE", "CREATIONDATE")
 
-def parseMapLayer(url, j=None, path=None):
-    if j is None: j = getJson(url)
+def parseMapLayer(url, j=None, path=None, indent=0):
+    try:
+        if j is None:
+            j = getJson(url)
+    except urllib.error.HTTPError as e:
+        print('  '*indent, e)
+        return
     if path is None:
         path = j['name']
-    print("   ", path)
-    if 'description' in j:
-        print("   ", j['description'])
+    if not any(isDateField(field) for field in j.get("fields", [])): return
+    print('  '*indent, path)
+    #if 'description' in j:
+    #    print('  '*indent, j['description'])
+    for field in j.get("fields", []):
+        if isDateField(field):
+            print('  '*(indent+1), field.get("name"), field.get("alias"))
+    return
     if os.path.exists(path+'.geojson'): return
     extent = j['extent']
     xSize = extent['xmax']-extent['xmin']
@@ -87,7 +111,7 @@ def parseMapLayer(url, j=None, path=None):
             subExtent['xmin'] = extent['xmin'] + xSize*xCell/cellCount
             subExtent['xmax'] = extent['xmin'] + xSize*(xCell+1)/cellCount
             q['geometry'] = json.dumps(subExtent)
-            print("    Loading layer", j['name'], "section", xCell, "x", yCell)
+            print('  '*indent, "Loading layer", j['name'], "section", xCell, "x", yCell)
             layerPiece = json.load(urlopen(urlunparse(u._replace(query=urlencode(q)))))
             if 'features' not in layerPiece:
                 warn("Layer part "+repr(layerPiece)+" has no features")
@@ -105,14 +129,19 @@ def parseMapLayer(url, j=None, path=None):
         geojson.update(lastPiece)
         json.dump(geojson, open(path+'.geojson', 'w'))
 
-def parseSomething(url, j=None):
-    if j is None: j = getJson(url)
+def parseSomething(url, j=None, indent=0):
+    try:
+        if j is None:
+            j = getJson(url)
+    except urllib.error.HTTPError as e:
+        print('  '*indent, e)
+        return
     if 'services' in j:
-        parseServicesDirectory(url, j)
+        parseServicesDirectory(url, j, indent=indent+1)
     elif 'layers' in j:
-        parseMapServer(url, j)
+        parseMapServer(url, j, indent=indent+1)
     elif 'extent' in j:
-        parseMapLayer(url, j)
+        parseMapLayer(url, j, indent=indent+1)
     else:
         warn("Unhandled service with data "+repr(j)+" at "+url)
 

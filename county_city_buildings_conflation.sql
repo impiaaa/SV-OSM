@@ -1,5 +1,10 @@
 \set ON_ERROR_STOP on
 
+\set CENTROID_MAX_DIST 100
+\set FEET_TO_METERS 0.3048
+\set MAX_HAUSDORFF_SIMILARITY 61
+\set MIN_OVERLAP_SIMILARITY 0.1
+
 -- Functions
 
 create or replace function
@@ -43,7 +48,7 @@ as (
     left join
         county_buildings
     on
-        ST_DWithin(county_buildings.centroid, city_centroids.geom, 100)
+        ST_DWithin(county_buildings.centroid, city_centroids.geom, :CENTROID_MAX_DIST)
 )
 select
     array_append($1, ST_Point(x, y))
@@ -98,7 +103,7 @@ alter table
     county_buildings
 add if not exists
     loc_geom
-    geometry('MULTIPOLYGON', 2227);
+    geometry('POLYGON', 2227);
 update
     county_buildings
 set
@@ -135,7 +140,7 @@ create index if not exists
 on
     county_buildings
 using
-    gist(ST_Expand(centroid, 100));
+    gist(ST_Expand(centroid, :CENTROID_MAX_DIST));
 
 -- Create a table to hold input data from all cities
 drop table if exists
@@ -168,8 +173,8 @@ select
         when level_desc='Shed' then 'shed'
         else 'yes'
     end as building,
-    bldg_low::real * 0.3048 as ele,
-    bldg_heigh * 0.3048 as height,
+    bldg_low::real * :FEET_TO_METERS as ele,
+    bldg_heigh * :FEET_TO_METERS as height,
     floornumbe as building_levels,
     year_built as start_date,
     TranslateByPoint(ST_Transform(geom, 2227), adjustment(ST_Transform(geom, 2227)) over ()) as geom,
@@ -254,7 +259,7 @@ insert into
     (building_levels, height, name, building, geom, data_date)
 select
     numstories as building_levels,
-    bldgheight*0.3048 as height,
+    bldgheight*:FEET_TO_METERS as height,
     name as name,
     case
         --when type='Complex' then 'civic'
@@ -288,7 +293,7 @@ insert into
 select
     case
         when name='unk' then NULL
-        else name
+        else initcap(name)
     end as name,
     TranslateByPoint(geom, adjustment(geom) over ()) as geom,
     coalesce(createddat, modifiedda, '2022-07-07 00:00:00'::timestamp) as data_date
@@ -303,8 +308,8 @@ insert into
     city_buildings
     (ele, height, geom, data_date)
 select
-    baseelev*0.3048 as ele,
-    bldgheight*0.3048 as height,
+    baseelev * :FEET_TO_METERS as ele,
+    bldgheight * :FEET_TO_METERS as height,
     TranslateByPoint(ST_Transform(ST_Force2D(geom), 2227), adjustment(ST_Transform(ST_Force2D(geom), 2227)) over ()) as geom,
     '2015-03-01 00:00:00'::timestamp as data_date
 from
@@ -318,8 +323,8 @@ insert into
     city_buildings
     (height, ele, building, building_levels, geom, data_date)
 select
-    bldg_heigh*0.3048 as height,
-    bldg_low::real as ele,
+    bldg_heigh * :FEET_TO_METERS as height,
+    bldg_low::real * :FEET_TO_METERS as ele,
     case
         when bldg_type='Dwelling' then 'residential'
         when bldg_type='Parking' then 'garages'
@@ -352,15 +357,14 @@ using
 
 -- Conflation
 
-drop table if exists county_intersections;
 create temporary table
     county_intersections
 as (
-    select distinct
+    select
         county_buildings.*,
         count(city_buildings.*) as intersection_count,
-        --ST_Area(ST_SymmetricDifference(county_buildings.loc_geom, ST_Union(city_buildings.geom)))/ST_Area(county_buildings.loc_geom) < 0.25 as similar_shape
-        ST_HausdorffDistance(county_buildings.loc_geom, ST_Union(city_buildings.geom)) < 15 as similar_shape
+        --ST_Area(ST_SymmetricDifference(county_buildings.loc_geom, ST_Union(city_buildings.geom)))/ST_Area(county_buildings.loc_geom) < 1.048 as similar_shape
+        ST_HausdorffDistance(ST_ConvexHull(county_buildings.loc_geom), ST_ConvexHull(ST_Collect(city_buildings.geom))) < :MAX_HAUSDORFF_SIMILARITY as similar_shape
     from
         county_buildings
     left join
@@ -370,7 +374,7 @@ as (
     and
         ST_Intersects(county_buildings.loc_geom, city_buildings.geom)
     and
-        ST_Area(ST_Intersection(county_buildings.loc_geom, city_buildings.geom)) > 0.1*least(ST_Area(county_buildings.loc_geom), ST_Area(city_buildings.geom))
+        ST_Area(ST_Intersection(county_buildings.loc_geom, city_buildings.geom)) > :MIN_OVERLAP_SIMILARITY * least(ST_Area(county_buildings.loc_geom), ST_Area(city_buildings.geom))
     group by
         county_buildings.gid, county_buildings.geom
 );
@@ -390,7 +394,7 @@ as (
         max(county_intersections.building_h) as building_h,
         count(county_intersections.*) as intersection_count,
         --ST_Area(ST_SymmetricDifference(city_buildings.geom, ST_Union(county_intersections.loc_geom)))/ST_Area(city_buildings.geom) < 0.25 as similar_shape,
-        ST_HausdorffDistance(city_buildings.geom, ST_Union(county_intersections.loc_geom)) < 15 as similar_shape,
+        ST_HausdorffDistance(ST_ConvexHull(city_buildings.geom), ST_ConvexHull(ST_Collect(county_intersections.loc_geom))) < :MAX_HAUSDORFF_SIMILARITY as similar_shape,
         city_buildings.data_date > '2020-01-01 00:00:00'::timestamp as newer,
         ST_NPoints(city_buildings.geom) > sum(ST_NPoints(county_intersections.loc_geom)) as higher_detail,
         sum(county_intersections.intersection_count) as other_intersection_count,
@@ -404,7 +408,7 @@ as (
     and
         ST_Intersects(city_buildings.geom, county_intersections.loc_geom)
     and
-        ST_Area(ST_Intersection(city_buildings.geom, county_intersections.loc_geom)) > 0.1*least(ST_Area(city_buildings.geom), ST_Area(county_intersections.loc_geom))
+        ST_Area(ST_Intersection(city_buildings.geom, county_intersections.loc_geom)) > :MIN_OVERLAP_SIMILARITY * least(ST_Area(city_buildings.geom), ST_Area(county_intersections.loc_geom))
     group by
         city_buildings.gid, city_buildings.geom, city_buildings.data_date
 )
@@ -413,11 +417,13 @@ select distinct
     --addr_full,
     building,
     building_levels,
-    coalesce(ele, base_heigh*0.3048) as ele,
+    coalesce(ele, base_heigh*:FEET_TO_METERS) as ele,
     flats,
-    coalesce(height, building_h*0.3048) as height,
+    coalesce(height, building_h*:FEET_TO_METERS) as height,
     name,
     start_date,
+    -- Offset measured by manually aligning survey point AA1873 to ESRI imagery, then manually
+    -- aligning the nearby county building outlines to the imagery
     ST_Translate(ST_Transform(geom, 4326), 0.0000049, -0.0000052)
 into
     import_buildings

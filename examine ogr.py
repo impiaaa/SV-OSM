@@ -1,6 +1,8 @@
 import sys, os
 from osgeo import ogr
 
+ogr.UseExceptions()
+
 if len(sys.argv) > 1:
     path = sys.argv[1]
 else:
@@ -12,17 +14,19 @@ layerFields = {}
 
 for i in range(dataSource.GetLayerCount()):
     layer = dataSource.GetLayer(i)
-    print("Layer:", layer.GetName())
-    layer.ResetReading()
-    
     featureDefinition = layer.GetLayerDefn()
+    print("Layer:", featureDefinition.GetName())
+    layer.ResetReading()
+
     fieldNames = [featureDefinition.GetFieldDefn(j).GetNameRef() for j in range(featureDefinition.GetFieldCount())]
+    #fieldAliases = {featureDefinition.GetFieldDefn(j).GetNameRef(): featureDefinition.GetFieldDefn(j).GetComment() for j in range(featureDefinition.GetFieldCount())}
     layerFields[layer.GetName()] = set(fieldNames)
     fieldValues = [set() for f in fieldNames]
     fieldHasEmpty = [False for f in fieldNames]
-    
+
     for j in range(layer.GetFeatureCount()):
         ogrfeature = layer.GetNextFeature()
+        if ogrfeature is None: continue
         
         processedFields = 0
         for k in range(len(fieldNames)):

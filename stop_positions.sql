@@ -21,17 +21,31 @@ alter table stops add column geog geography(POINT, 4326);
 update stops set geog=ST_MakePoint(stop_lon, stop_lat);
 alter table stops drop column stop_lat;
 alter table stops drop column stop_lon;
-create index on stops using gist(geog);
+
+\if `expr $(shp2pgsql | grep RELEASE: | grep -o '[0-9]\.[0-9]') '>=' 3.4`
+    create index on stops using gist(geog);
+\else
+    alter table stops add column loc_geom geometry(POINT, 2227);
+    update stops set loc_geom=ST_Transform(geog::geometry, 2227);
+    create index on stops using gist(loc_geom);
+    
+    alter table RoadCenterLine add column if not exists loc_geom geometry(MULTILINESTRING, 2227);
+    update RoadCenterLine set loc_geom=ST_Transform(geog::geometry, 2227);
+    create index if not exists roadcenterline_loc_geom_idx on RoadCenterLine using gist(loc_geom);
+\endif
+
+create index on stops (upper(stop_name));
+create index on stops (stop_name);
 
 drop table if exists stop_positions;
 create table stop_positions as (
     select
         stops.stop_code as ref,
         stops.stop_name as name,
-        \if `expr $(shp2pgsql -? | grep RELEASE: | grep -o '[0-9]\.[0-9]') '>=' 3.4`
+        \if `expr $(shp2pgsql | grep RELEASE: | grep -o '[0-9]\.[0-9]') '>=' 3.4`
             ST_ClosestPoint(RoadCenterLine.geog, stops.geog)
         \else
-            ST_Transform(ST_ClosestPoint(ST_Transform(RoadCenterLine.geog::geometry, 2227), ST_Transform(stops.geog::geometry, 2227)), 4326)
+            ST_Transform(ST_ClosestPoint(RoadCenterLine.loc_geom, stops.loc_geom), 4326)::geography
         \endif
         as geog,
         row_number() over (partition by stops.stop_code order by ST_Distance(stops.geog, RoadCenterLine.geog)) as rn
